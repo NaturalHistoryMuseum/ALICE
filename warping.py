@@ -86,7 +86,7 @@ class SimilarAsPossible:
         indices = np.ravel_multi_index(corners, (self.height + 1, self.width + 1))
         x_indices = indices * 2
         y_indices = indices * 2 + 1
-        combined_indices = np.array(zip(x_indices, y_indices)).flatten()
+        combined_indices = np.array(list(zip(x_indices, y_indices))).flatten()
         return coo_matrix((np.ones(6), (np.arange(6), combined_indices)), (6, self.num_vertices * 2))
 
     @property
