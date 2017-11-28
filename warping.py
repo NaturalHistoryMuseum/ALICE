@@ -1,7 +1,6 @@
-import matplotlib.pyplot as plt
 from numba import njit
 import numpy as np
-from scipy.sparse import coo_matrix, csr_matrix, vstack
+from scipy.sparse import coo_matrix, vstack
 from scipy.sparse.linalg import lsqr
 import skimage
 import skimage.io
@@ -137,40 +136,3 @@ def bidirectional_similarity(u, v, u1, v1):
     x_reprojected = skimage.transform.warp(x_projected, np.stack((Y - v1, X - u1)))
 
     return (Y - y_reprojected)**2 + (X - x_reprojected)**2
-
-
-# if __name__ == '__main__':
-#     source = skimage.img_as_float(skimage.io.imread('warped_2.png'))
-#     target = skimage.img_as_float(skimage.io.imread('warped_3.png'))
-#     S = SimilarAsPossible((12, 12), (40, 40))
-#
-#     _, u, v = align_optical_flow(source, target)
-#     _, u_reverse, v_reverse = align_optical_flow(target, source)
-#
-#     Y, X = np.mgrid[:source.shape[0], :source.shape[1]]
-#
-#     u = u[10:-10]
-#     v = v[10:-10]
-#     u_reverse = u_reverse[10:-10]
-#     v_reverse = v_reverse[10:-10]
-#     Y = Y[10:-10]
-#     X = X[10:-10]
-#
-#     BDS = bidirectional_similarity(u, v, u_reverse, v_reverse)
-#
-#     P = np.stack((X.flatten(), Y.flatten()), axis=1) + 0.5
-#     P_hat = np.stack(((X - u).flatten(), (Y - v).flatten()), axis=1) + 0.5
-#
-#     height, width = source.shape[:2]
-#     valid = (BDS < 1).flatten()
-#
-#     P = P[valid]
-#     P_hat = P_hat[valid]
-#
-#     S.fit(P, P_hat, 0.5)
-#     plt.imshow(skimage.transform.warp(source, S.transformation.inverse))
-#     plt.plot(P[::100, 0], P[::100, 1], 'ro')
-#     plt.plot(P_hat[::100, 0], P_hat[::100, 1], 'bo')
-#     plt.plot(S.V.reshape(-1, 2)[:, 0], S.V.reshape(-1, 2)[:, 1], 'o')
-#     plt.show()
-#     skimage.io.imsave('grid_warp.png', skimage.transform.warp(source, S.transformation.inverse))

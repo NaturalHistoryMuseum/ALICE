@@ -1,8 +1,8 @@
-import cv2
 import matplotlib.pyplot as plt
 import numpy as np
 import pyflow
 import skimage
+from skimage.feature import match_descriptors, ORB
 from skimage.measure import ransac
 import skimage.transform
 import time
@@ -11,31 +11,22 @@ import time
 from warping import SimilarAsPossible, bidirectional_similarity
 
 
-sift = cv2.SIFT()
-
-
 def align_homography(image, target):
-    kp1, des1 = sift.detectAndCompute(image, None)
-    kp2, des2 = sift.detectAndCompute(target, None)
-
-    # FLANN parameters
-    FLANN_INDEX_KDTREE = 0
-    index_params = dict(algorithm=FLANN_INDEX_KDTREE, trees=5)
-    search_params = dict(checks=50)
-    flann = cv2.FlannBasedMatcher(index_params, search_params)
-    matches = [m for m, n in flann.knnMatch(des1, des2, k=2) if m.distance < 0.9 * n.distance]
-
-    src_points = [kp1[m.queryIdx].pt for m in matches]
-    dst_points = [kp2[m.trainIdx].pt for m in matches]
+    detector_extractor1 = ORB()
+    detector_extractor1.detect_and_extract(image[..., 1])
+    detector_extractor2 = ORB()
+    detector_extractor2.detect_and_extract(target[..., 1])
+    matches = match_descriptors(detector_extractor1.descriptors, detector_extractor2.descriptors, cross_check=True)
+    src = detector_extractor1.keypoints[matches[:, 0], ::-1]
+    dst = detector_extractor2.keypoints[matches[:, 1], ::-1]
 
     plt.imshow(np.concatenate((image, target), axis=1))
-    for b, a in zip(src_points, dst_points):
+    for b, a in zip(src, dst):
         plt.plot([a[0] + image.shape[1], b[0]], [a[1], b[1]], 'o-')
     plt.show()
 
-    src = np.array(src_points, dtype=np.float)
-    dst = np.array(dst_points, dtype=np.float)
-    H, inliers = ransac([src, dst], skimage.transform.ProjectiveTransform, min_samples=8, residual_threshold=2, max_trials=400)
+    H, inliers = ransac([src, dst], skimage.transform.ProjectiveTransform,
+                        min_samples=8, residual_threshold=2, max_trials=400)
 
     return skimage.transform.warp(image, H.inverse)
 
