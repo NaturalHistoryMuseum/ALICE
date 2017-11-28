@@ -1,0 +1,11 @@
+name: scalabel
+channels:
+- menpo
+dependencies:
+- ipython
+- matplotlib
+- numba
+- numpy
+- opencv=2.4
+- python=2.7
+- scikit-image

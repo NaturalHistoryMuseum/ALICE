@@ -1,4 +1,4 @@
-import numpy as np 
+import numpy as np
 import cv2
 
 # written by Adiran Rosebrock, used with some edits for IEEE @ UIUC Hackathon 2014 by Mohammad Saad
@@ -34,7 +34,7 @@ def four_point_transform(image, pts, angle=None):
 
     # print maxWidth, maxHeight
     maxWidth = 200
-    maxHeight = maxWidth 
+    maxHeight = maxWidth
 
     dst = np.array([
         [0, 0],
@@ -71,7 +71,7 @@ def four_point_transform(image, pts, angle=None):
 
         p = np.array([(p[0] / p[2], p[1] / p[2], 1) for p in M.dot(points_ones.T).T])
         p = R.dot(p.T).T
-        print p[:, 0]
+        print(p[:, 0])
         tx += cols / 2 - np.mean(p[:, 0])
         ty += rows / 2 - np.mean(p[:, 1])
 
