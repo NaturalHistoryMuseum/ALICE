@@ -5,7 +5,7 @@ import skimage.transform
 
 
 data_dir = 'data/Test 3_Flies_GreyFoam'
-specimen_prefix = "0004"
+specimen_prefix = "0003"
 
 scale = 0.25
 

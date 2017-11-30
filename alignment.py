@@ -20,10 +20,10 @@ def align_homography(image, target):
     src = detector_extractor1.keypoints[matches[:, 0], ::-1]
     dst = detector_extractor2.keypoints[matches[:, 1], ::-1]
 
-    plt.imshow(np.concatenate((image, target), axis=1))
-    for b, a in zip(src, dst):
-        plt.plot([a[0] + image.shape[1], b[0]], [a[1], b[1]], 'o-')
-    plt.show()
+    # plt.imshow(np.concatenate((image, target), axis=1))
+    # for b, a in zip(src, dst):
+    #     plt.plot([a[0] + image.shape[1], b[0]], [a[1], b[1]], 'o-')
+    # plt.show()
 
     H, inliers = ransac([src, dst], skimage.transform.ProjectiveTransform,
                         min_samples=8, residual_threshold=2, max_trials=400)
@@ -52,7 +52,7 @@ def align_optical_flow(image, target):
 
 
 def align_regularised_flow(image, target):
-    S = SimilarAsPossible((12, 12), (40, 40))
+    S = SimilarAsPossible((int(np.ceil(image.shape[0] / 40)), int(np.ceil(image.shape[1] / 40))), (40, 40))
 
     _, u, v = align_optical_flow(image, target)
     _, u_reverse, v_reverse = align_optical_flow(target, image)
@@ -78,4 +78,8 @@ def align_regularised_flow(image, target):
     P_hat = P_hat[valid]
 
     S.fit(P, P_hat, 2)
-    return skimage.transform.warp(image, S.transformation.inverse)
+
+    output_image = skimage.transform.warp(image, S.transformation.inverse, cval=np.nan)
+    mask = np.isnan(output_image)
+    output_image[mask] = 0
+    return output_image, mask

@@ -113,8 +113,8 @@ class SimilarAsPossible:
         A = vstack([A_data, alpha**2 * A_shape])
         b = np.concatenate([b_data, alpha**2 * b_shape])
 
-        x_points = np.arange(self.height + 1) * self.grid_separation[0]
-        y_points = np.arange(self.width + 1) * self.grid_separation[1]
+        x_points = np.arange(self.width + 1) * self.grid_separation[0]
+        y_points = np.arange(self.height + 1) * self.grid_separation[1]
         X, Y = np.meshgrid(x_points, y_points)
         grid = np.stack((X.flatten(), Y.flatten()), axis=1)
 
