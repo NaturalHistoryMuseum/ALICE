@@ -1,14 +1,12 @@
-import matplotlib.pyplot as plt
 import numpy as np
-import pyflow
+from scalabel import pyflow
 import skimage
 from skimage.feature import match_descriptors, ORB
 from skimage.measure import ransac
 import skimage.transform
-import time
 
 
-from warping import SimilarAsPossible, bidirectional_similarity
+from scalabel.warping import SimilarAsPossible, bidirectional_similarity
 
 
 def align_homography(image, target):
@@ -19,11 +17,6 @@ def align_homography(image, target):
     matches = match_descriptors(detector_extractor1.descriptors, detector_extractor2.descriptors, cross_check=True)
     src = detector_extractor1.keypoints[matches[:, 0], ::-1]
     dst = detector_extractor2.keypoints[matches[:, 1], ::-1]
-
-    # plt.imshow(np.concatenate((image, target), axis=1))
-    # for b, a in zip(src, dst):
-    #     plt.plot([a[0] + image.shape[1], b[0]], [a[1], b[1]], 'o-')
-    # plt.show()
 
     H, inliers = ransac([src, dst], skimage.transform.ProjectiveTransform,
                         min_samples=8, residual_threshold=2, max_trials=400)
@@ -42,12 +35,10 @@ def align_optical_flow(image, target):
     nSORIterations = 30
     colType = 0  # 0 or default:RGB, 1:GRAY (but pass gray image with shape (h,w,1))
 
-    s = time.time()
     u, v, im2W = pyflow.coarse2fine_flow(
-        target, image, alpha, ratio, minWidth, nOuterFPIterations, nInnerFPIterations, nSORIterations, colType)
-    e = time.time()
+        target.copy(order='C'), image.copy(order='C'),
+        alpha, ratio, minWidth, nOuterFPIterations, nInnerFPIterations, nSORIterations, colType)
 
-    print('Time Taken: {:.2f} seconds for image of size ({:d}, {:d}, {:d})'.format(e - s, *image.shape))
     return im2W, u, v
 
 

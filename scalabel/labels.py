@@ -5,7 +5,7 @@ import skimage.transform
 from sklearn.neighbors import NearestNeighbors
 
 
-from pygco import cut_from_graph
+from scalabel.pygco import cut_from_graph
 
 
 class MultipleTransformations:

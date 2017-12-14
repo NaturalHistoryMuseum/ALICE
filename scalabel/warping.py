@@ -120,7 +120,7 @@ class SimilarAsPossible:
 
         r = b - (A * grid.reshape(-1, 1)).flatten()
 
-        self.V = lsqr(A, r, show=True)[0] + grid.flatten()
+        self.V = lsqr(A, r, show=False)[0] + grid.flatten()
 
         self.transformation = estimate_transform('piecewise-affine', grid, self.V.reshape(-1, 2))
 
