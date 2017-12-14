@@ -1,0 +1,8 @@
+name: scalabel
+dependencies:
+- ipython
+- matplotlib
+- numba
+- numpy
+- python=3
+- scikit-image
