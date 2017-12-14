@@ -8,3 +8,6 @@
 ## Recommended Todo:
 1) Label clustering. At the moment a label is selected manually, but matches are distinct enough to cluster labels according to match vectors.
 2) Auto callibration system. Given calibration images of all cameras, generate loadable coordinates of well centred squares. This will help if camera configuration changes in the future.
+
+## Note on licenses
+Both pyflow (https://github.com/pathak22/pyflow) and gco_python (https://github.com/amueller/gco_python; http://vision.csd.uwo.ca/code/) are included but have their own licenses. If making the repository public this needs to be accounted for
