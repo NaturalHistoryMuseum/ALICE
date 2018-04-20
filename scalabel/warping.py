@@ -1,3 +1,5 @@
+import math
+
 from numba import njit
 import numpy as np
 from scipy.sparse import coo_matrix, vstack
@@ -68,8 +70,8 @@ class SimilarAsPossible:
     '''Based on section 3.2 from 'Bundled Camera Paths for Video Stabilization'.'''
     R90 = coo_matrix(np.array([[0, 1], [-1, 0]]))
 
-    def __init__(self, grid_shape, grid_separation):
-        self.height, self.width = grid_shape
+    def __init__(self, shape, grid_separation):
+        self.height, self.width = math.ceil(shape[0] / grid_separation[0]), math.ceil(shape[1] / grid_separation[1])
         self.num_vertices = (self.height + 1) * (self.width + 1)
         self.grid_separation = grid_separation
         self.s = grid_separation[0] / grid_separation[1]
@@ -124,15 +126,27 @@ class SimilarAsPossible:
 
         self.transformation = estimate_transform('piecewise-affine', grid, self.V.reshape(-1, 2))
 
+        return self
 
-def bidirectional_similarity(u, v, u1, v1):
-    height, width = u.shape
-    Y, X = np.mgrid[:height, :width]
 
-    y_projected = skimage.transform.warp(Y * 1.0, np.stack((Y - v, X - u)))
-    x_projected = skimage.transform.warp(X * 1.0, np.stack((Y - v, X - u)))
+def warp_flow(image, flow):
+    height, width = image.shape[:2]
+    grid = np.stack(np.mgrid[:height, :width], axis=2)
 
-    y_reprojected = skimage.transform.warp(y_projected, np.stack((Y - v1, X - u1)))
-    x_reprojected = skimage.transform.warp(x_projected, np.stack((Y - v1, X - u1)))
+    if image.ndim == 2:
+        image = image[..., np.newaxis]
 
-    return (Y - y_reprojected)**2 + (X - x_reprojected)**2
+    image = image.astype(np.float)
+    coords = (grid - flow).transpose(2, 0, 1)
+
+    return np.stack([skimage.transform.warp(channel, coords) for channel in image.transpose(2, 0, 1)], axis=2)
+
+
+def bidirectional_similarity(flow_forward, flow_reverse):
+    height, width = flow_forward.shape[:2]
+    grid = np.stack(np.mgrid[:height, :width], axis=2)
+
+    projected = warp_flow(grid, flow_forward)
+    reprojected = warp_flow(projected, flow_reverse)
+
+    return ((grid - reprojected)**2).sum(axis=2)

@@ -49,51 +49,33 @@ def edges_nearest(points, num_neighbours):
                 yield (*sorted((i, index)), int(distance))
 
 
-def initialise_models(points, K):
+def initialise_model(points):
     num_points = points.shape[0]
-    for k in range(K):
-        minimal_subset = points[np.random.choice(np.arange(num_points), 8)]
-        yield MultipleTransformations(skimage.transform.ProjectiveTransform, num_angles=4).estimate(minimal_subset)
+    minimal_subset = points[np.random.choice(num_points, 8, replace=False)]
+    return MultipleTransformations(skimage.transform.ProjectiveTransform, num_angles=4).estimate(minimal_subset)
 
 
-def minimum_support(labels, support_size=10):
-    remaining_models = np.unique(labels)
-    support = [(labels == m).sum() for m in remaining_models]
-
-    return sorted([remaining_models[m] for m in np.where(np.array(support) > support_size)[0]])
-
-
-def pearl(points, K=500, max_iterations=30):
+def pearl(points, K=500, max_iterations=30, minimum_support=10):
     unique_edges = set(edges_nearest(points.reshape(-1, 8), num_neighbours=20))
     edges = np.stack(unique_edges).astype(np.int32)
 
-    models = list(initialise_models(points, K))
+    models = [initialise_model(points) for _ in range(K)]
 
-    labels_old = None
-    model_changed = [True] * len(models)
-    unary = np.zeros((points.shape[0], len(models)))
-
-    pairwise = -np.eye(len(models), dtype=np.int32)
+    pairwise = 1 - np.eye(len(models), dtype=np.int32)
 
     for iteration in range(max_iterations):
-        unary = np.stack([model.residual(points) if has_changed else unary[:, j]
-                          for j, (model, has_changed) in enumerate(zip(models, model_changed))], axis=1)
+        unary = np.stack([model.residual(points) for model in models], axis=1)
         labels = cut_from_graph(edges, unary, pairwise)
         for i, model in enumerate(models):
             inliers = (labels == i)
-            if inliers.sum() >= 10:
+            if inliers.sum() >= minimum_support:
                 model.estimate(points[inliers])
-                model_changed[i] = True
             else:
-                model_changed[i] = False
+                models[i] = initialise_model(points)
         print('Completed iteration {}'.format(iteration))
 
-        if labels_old is not None and (labels == labels_old).all():
-            break
-        else:
-            labels_old = labels
-
-    return minimum_support(labels, support_size=10), models, labels
+    inliers = np.bincount(labels.flatten(), minlength=len(models))
+    return [(model, i) for i, (model, support) in enumerate(zip(models, inliers)) if support >= minimum_support], labels
 
 
 def crop_to_points(points, border=0.5):
@@ -116,16 +98,16 @@ def crop_to_points(points, border=0.5):
 
 
 def separate_labels(images, points, visualise=False):
-    best_models, models, labels = pearl(points)
+    best_models, labels = pearl(points)
 
     if visualise:
-        visualise_labels(images, points, labels, best_models, show=False)
+        visualise_labels(images, points, labels, [model for model, index in best_models], show=False)
         plt.savefig('labels.png', dpi=1000, bbox_inches='tight')
         plt.close()
 
     label_images = []
-    for j, m in enumerate(best_models):
-        crops = [crop_to_points(points[labels == m, k]) for k in range(len(images))]
+    for model, index in best_models:
+        crops = [crop_to_points(points[labels == index, k]) for k in range(len(images))]
         bounding_dimensions = [max(crop.stop - crop.start for crop in dim) for dim in zip(*crops)]
         height, width = bounding_dimensions
         equal_crops = [(slice((y.stop + y.start - height) // 2, (y.stop + y.start + height) // 2),
@@ -135,18 +117,3 @@ def separate_labels(images, points, visualise=False):
             label_images.append(current_label_image)
 
     return label_images
-
-
-if __name__ == '__main__':
-    images = [skimage.io.imread('outlabel{}.png'.format(i)) for i in range(4)]
-    points = np.load('points.npy')
-
-    label_images = separate_labels(images, points, visualise=True)
-
-    for i, current_label_images in enumerate(label_images):
-        for j, image in enumerate(current_label_images):
-            ax = plt.subplot(len(label_images), len(current_label_images), i * len(current_label_images) + 1 + j)
-            ax.imshow(image)
-            ax.axis('off')
-    plt.savefig('image_labels.png', dpi=200, bbox_inches='tight')
-    plt.close()

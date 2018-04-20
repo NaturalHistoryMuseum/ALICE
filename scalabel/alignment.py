@@ -39,38 +39,25 @@ def align_optical_flow(image, target):
         target.copy(order='C'), image.copy(order='C'),
         alpha, ratio, minWidth, nOuterFPIterations, nInnerFPIterations, nSORIterations, colType)
 
-    return im2W, u, v
+    return np.stack((u, v), axis=2)
 
 
 def align_regularised_flow(image, target):
-    S = SimilarAsPossible((int(np.ceil(image.shape[0] / 40)), int(np.ceil(image.shape[1] / 40))), (40, 40))
-
-    _, u, v = align_optical_flow(image, target)
-    _, u_reverse, v_reverse = align_optical_flow(target, image)
-
-    Y, X = np.mgrid[:image.shape[0], :image.shape[1]]
-
-    u = u[10:-10]
-    v = v[10:-10]
-    u_reverse = u_reverse[10:-10]
-    v_reverse = v_reverse[10:-10]
-    Y = Y[10:-10]
-    X = X[10:-10]
-
-    BDS = bidirectional_similarity(u, v, u_reverse, v_reverse)
-
-    P = np.stack((X.flatten(), Y.flatten()), axis=1) + 0.5
-    P_hat = np.stack(((X - u).flatten(), (Y - v).flatten()), axis=1) + 0.5
+    flow = align_optical_flow(image, target)
+    flow_reverse = align_optical_flow(target, image)
 
     height, width = image.shape[:2]
-    valid = (BDS < 2).flatten()
+    grid = np.stack(np.mgrid[:height, :width][::-1], axis=2)
 
-    P = P[valid]
-    P_hat = P_hat[valid]
+    flow = flow[10:-10]
+    flow_reverse = flow_reverse[10:-10]
+    grid = grid[10:-10]
 
-    S.fit(P, P_hat, 2)
+    P = grid.reshape(-1, 2) + 0.5
+    P_hat = (grid - flow).reshape(-1, 2) + 0.5
 
-    output_image = skimage.transform.warp(image, S.transformation.inverse, cval=np.nan)
-    mask = np.isnan(output_image)
-    output_image[mask] = 0
-    return output_image, mask
+    valid = (bidirectional_similarity(flow, flow_reverse) < 2).flatten()
+
+    S = SimilarAsPossible(shape=image.shape, grid_separation=(40, 40)).fit(P[valid], P_hat[valid], alpha=2)
+
+    return np.ma.masked_invalid(skimage.transform.warp(image, S.transformation.inverse, cval=np.nan))

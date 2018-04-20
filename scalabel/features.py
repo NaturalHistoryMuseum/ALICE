@@ -6,12 +6,12 @@ from skimage.feature import match_descriptors, ORB
 
 
 def pairs(iterable, cycle=False):
-    first = iter(iterable)
-    second = iter(iterable)
+    first, second = itertools.tee(iterable)
+
     if cycle:
         second = itertools.cycle(second)
-    next(second)
 
+    next(second)
     return zip(first, second)
 
 
