@@ -1,6 +1,8 @@
 # scalabel
 ### Software for ALICE
 
+![](https://github.com/NaturalHistoryMuseum/scalabel/blob/master/example.png)
+
 ## Pipeline:
 1) **Calibration:** for each of the four camera angles, image coordinates for a flat square in world space must be given in `square.csv`. This can be done in two ways:
      * *Manually:* by determining the `(x,y)` pixel coordinates for each *corresponding* corner and creating a `square.csv` file by hand. This must fit the format in the example [`square.csv`](https://github.com/NaturalHistoryMuseum/scalabel/blob/d50877eb1c85eae676a12ae59e43105436188dfc/square.csv)
