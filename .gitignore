@@ -4,3 +4,4 @@ data
 .ipynb_checkpoints
 .idea
 scratch*
+.pytest_cache
