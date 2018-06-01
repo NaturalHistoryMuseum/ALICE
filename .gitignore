@@ -2,3 +2,5 @@
 data
 *.png
 .ipynb_checkpoints
+.idea
+scratch*
