@@ -5,13 +5,11 @@ from skimage.transform import AffineTransform, rescale, warp
 from scalabel.calibrate import Calibrator
 
 
-class PerspectiveAlignment:
-    def __init__(self, images, scale=0.25, coordinates='square.csv'):
+class PerspectiveCorrection:
+    def __init__(self, images, scale=0.25, calibrator=Calibrator.from_csv('square.csv')):
         self.scale = scale
         self.images = [rescale(image, scale) for image in images]
-
-        # points representing squares on the calibration grid
-        self.calibrator = Calibrator.from_csv(coordinates)
+        self.calibrator = calibrator
         self.calibrator.scale(scale)
 
     @property
