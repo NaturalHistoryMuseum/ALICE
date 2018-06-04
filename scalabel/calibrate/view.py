@@ -55,7 +55,8 @@ class View(object):
 
         normalise = AffineTransform(scale=scale) + AffineTransform(translation=offset)
 
-        return warp(image, normalise + self.transform, output_shape=(4000, 4000), mode='constant')[1000:-1000, 1000:-1000]
+        return warp(image, normalise + self.transform, output_shape=(4000, 4000),
+                    mode='constant')[1000:-1000, 1000:-1000]
 
     def display(self, pattern_image, set_image=True):
         """

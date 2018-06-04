@@ -17,7 +17,7 @@ class PerspectiveCorrection:
         if calibrator is None:
             calibrator = Calibrator.from_csv('square.csv')
         self.scale = scale
-        self.images = {camera_id: rescale(image, scale) for camera_id, image in
+        self.images = {camera_id: rescale(image, scale, mode='constant') for camera_id, image in
                        images}
         self.calibrator = calibrator
         self.calibrator.scale(scale)
