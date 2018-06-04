@@ -1,9 +1,8 @@
-import csv
-
 import numpy as np
-from cached_property import cached_property
-from skimage.transform import estimate_transform, rescale
-import matplotlib.pyplot as plt
+import pandas as pd
+from skimage.transform import rescale
+
+from .view import View
 
 
 class Calibrator(object):
@@ -14,8 +13,7 @@ class Calibrator(object):
 
     def __init__(self):
         self.images = None
-        self.coordinates = None
-        self.box_normal = np.array([[0, 100], [0, 0], [100, 0], [100, 100]])
+        self._views = []
 
     @classmethod
     def from_csv(cls, csv_path):
@@ -25,13 +23,10 @@ class Calibrator(object):
         :return: a Calibrator with the coordinates loaded from the CSV
         """
         cal = cls()
-        cal.coordinates = np.zeros((4, 4, 2), dtype=np.float)
-
-        with open(csv_path, 'r+') as csvfile:
-            reader = csv.reader(csvfile, delimiter=' ', skipinitialspace=True)
-            header = next(reader)
-            for camera, index, *coordinate in reader:
-                cal.coordinates[int(camera), int(index)] = coordinate
+        data = pd.read_csv(csv_path, sep=' ', skipinitialspace=True)
+        data = data.pivot(index='Camera', columns='Point')
+        cal._views += [View(cam, pd.DataFrame(points.swaplevel()).unstack().values.astype(
+            np.float64)) for cam, points in data.iterrows()]
         return cal
 
     @classmethod
@@ -44,32 +39,20 @@ class Calibrator(object):
         """
         raise NotImplementedError
 
-    @cached_property
-    def transforms(self):
-        if self.coordinates is None:
-            del self.__dict__['transforms']
-            raise AttributeError(
-                'You need to define coordinates first. Use Calibrator.from_csv() or '
-                'Calbrator.auto() to construct a new calibrator.')
-        else:
-            return [estimate_transform('projective', self.box_normal, points) for points
-                    in self.coordinates]
-
     def scale(self, scale):
+        """
+        Rescales (in-place) any images and views in the calibrator.
+        :param scale: the scale factor
+        """
         if self.images is not None:
             self.images = [rescale(image, scale) for image in self.images]
-        if self.coordinates is not None:
-            self.coordinates *= scale
-        if 'transforms' in self.__dict__:
-            del self.__dict__['transforms']
+        for v in self._views:
+            v.scale(scale)
 
-    def display(self):
-        if self.images is None or self.coordinates is None:
-            raise AttributeError(
-                'You need to define coordinates and images first (either manually or '
-                'using one of the constructors).')
-        else:
-            for i in range(len(self.images)):
-                plot = plt.imshow(self.images[i])
-                plt.scatter(self.coordinates[i][:, 0], self.coordinates[i][:, 1], c='r', s=20)
-                plt.show()
+    @property
+    def views(self):
+        """
+        A dictionary of views/cameras keyed on their id.
+        :return: dict
+        """
+        return {v.id: v for v in self._views}
