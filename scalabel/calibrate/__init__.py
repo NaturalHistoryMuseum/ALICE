@@ -1,6 +1,8 @@
 import numpy as np
 import pandas as pd
 from skimage.transform import rescale
+from matplotlib.pyplot import imread
+import os
 
 from .view import View
 
@@ -23,10 +25,23 @@ class Calibrator(object):
         :return: a Calibrator with the coordinates loaded from the CSV
         """
         cal = cls()
-        data = pd.read_csv(csv_path, sep=' ', skipinitialspace=True)
+        data = pd.read_csv(csv_path, sep='\t', skipinitialspace=True)
         data = data.pivot(index='Camera', columns='Point')
         cal._views += [View(cam, pd.DataFrame(points.swaplevel()).unstack().values.astype(
             np.float64)) for cam, points in data.iterrows()]
+        return cal
+
+    @classmethod
+    def graphical(cls, images):
+        """
+        Get coordinates from user input on matplotlib graphs. Obviously not the most
+        ideal way of doing this.
+        :param images: a list of paths to calibration pattern images
+        :return: a Calibrator
+        """
+        cal = cls()
+        cal._views = [View.click(imread(i), i.split(os.path.sep)[-1]) for i in images]
+        cal.images = [i.pattern for i in cal._views]
         return cal
 
     @classmethod
@@ -38,6 +53,14 @@ class Calibrator(object):
         :return: a Calibrator with the coordinates calculated from the images
         """
         raise NotImplementedError
+
+    def to_csv(self, csv_path):
+        points = []
+        for v in self._views:
+            for i, xy in enumerate(v.coordinates):
+                points.append([v.id, i, *xy])
+        pd.DataFrame(data=points, columns=['Camera', 'Point', 'x', 'y']).to_csv(
+            csv_path, sep='\t', index=False)
 
     def scale(self, scale):
         """

@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.patches import Polygon
+import re
 from skimage.transform import AffineTransform, estimate_transform, rescale, warp
 
 
@@ -19,6 +20,31 @@ class View(object):
         self.transform = self._get_transform()
         self.scaled = 1
         self.pattern = None
+
+    @classmethod
+    def click(cls, pattern, filename):
+        alice_id = re.findall('(ALICE\d)', filename)
+        alice_id = alice_id[0] if len(alice_id) > 0 else filename
+        view_id = input('View ID [{0}]: '.format(alice_id))
+        view_id = (view_id if view_id != '' else alice_id).replace(' ', '_')
+        coords = []
+
+        def _click(event):
+            coords.append((int(event.xdata), int(event.ydata)))
+            plt.close()
+
+        for t in ['red', 'green', 'blue', 'purple']:
+            fig = plt.figure()
+            ax = fig.add_subplot(111)
+            ax.set_title(t)
+            plt.imshow(pattern)
+            fig.canvas.mpl_connect('button_press_event', _click)
+            plt.plot([c[0] for c in coords], [c[1] for c in coords], 'r+')
+            plt.show()
+
+        vw = View(view_id, np.array(coords))
+        vw.pattern = pattern
+        return vw
 
     def _get_transform(self):
         """

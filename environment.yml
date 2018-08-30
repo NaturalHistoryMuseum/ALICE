@@ -6,3 +6,4 @@ dependencies:
 - numpy
 - python=3
 - scikit-image
+- pandas
