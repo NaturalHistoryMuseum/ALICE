@@ -1,52 +1,112 @@
 import itertools
+import math
 
 import matplotlib.pyplot as plt
 import numpy as np
-from skimage.feature import match_descriptors, ORB
+import pandas as pd
+from skimage.color import rgb2gray
+from skimage.feature import ORB, match_descriptors
 
 
-def pairs(iterable, cycle=False):
-    first, second = itertools.tee(iterable)
+class ImageFeatures(object):
+    """
+    Describes an image and detects features in it using scikit's ORB detector.
+    :param ix: index or other unique identifier for the image
+    :param image: the image object as a numpy array
+    """
 
-    if cycle:
-        second = itertools.cycle(second)
+    def __init__(self, ix, image):
+        self.ix = ix
+        self.image = image
+        self.grey = rgb2gray(self.image)
+        self.detector = ORB(n_keypoints=3000)
+        self.detector.detect_and_extract(self.grey)
+        self.descriptors = self.detector.descriptors
+        self.keypoints = self.detector.keypoints
 
-    next(second)
-    return zip(first, second)
 
+class FeatureMatcher(object):
+    """
+    Given a group of images, finds matching image features between them. Arbitrarily
+    assigns a base image and matches the others to features in this image,
+    only returning the features that match in all images.
+    :param images: ImageFeatures objects to match
+    """
 
-def visualise(images, feature_detectors, matches):
-    all_images = np.concatenate(images, axis=1)
-    plt.imshow(all_images)
-    for m in global_matches:
-        points = zip(*[detector.keypoints[k, ::-1] + np.array([i * images[0].shape[1], 0])
-                       for i, k, detector in zip(range(4), m, feature_detectors)])
-        plt.plot(*points)
-    plt.show()
+    def __init__(self, images):
+        self.base_image = images[0]
+        self.images = images
+        self._match_table = pd.DataFrame({
+            self.base_image.ix: list(range(len(self.base_image.descriptors)))
+            })
+        for img in images[1:]:
+            self.match(img)
+
+    def match(self, other):
+        """
+        Tries to find matching features in the base image and another image. Adds the
+        matches to an internal pandas table.
+        :param other: an ImageFeature object
+        """
+        matches = match_descriptors(self.base_image.descriptors, other.descriptors,
+                                    cross_check=True)
+        matches = pd.Series({m[0]: m[1] for m in matches}).reindex(
+            self._match_table.index)
+        self._match_table[other.ix] = matches
+
+    def get_matches(self, first, second):
+        """
+        Get the indices of the features/keypoints that match in two ImageFeatures
+        objects. Will only return features that are present in all images.
+        :param first: ImageFeatures object one
+        :param second: ImageFeatures object two
+        :return: a (n, 2) shaped numpy array where column 1 contains indices for
+                 features in object one and column 2 contains the corresponding indices
+                 for features in object two
+        """
+        matches = self._match_table.dropna(0)[[first.ix, second.ix]].astype(int).values
+        return matches
+
+    def get_keypoints(self, *others):
+        """
+        Get the keypoints (feature coordinates) for a variable number of ImageFeatures
+        objects.
+        :param others: ImageFeatures object(s)
+        :return: a 3D numpy array with coordinates for matching features in all the
+                 given images
+        """
+        matches = self._match_table.dropna(0)
+        keypoints = []
+        for other in others:
+            indices = matches[other.ix].astype(int).values
+            # the coordinates have to be flipped for later processing, hence the ::-1
+            keypoints.append(other.keypoints[indices, ::-1])
+        return np.stack(keypoints, axis=1)
+
+    def visualise(self):
+        """
+        Display the images with the matching features marked.
+        """
+        ncols = 2
+        fig, axes = plt.subplots(nrows=int(len(self.images) / 2), ncols=ncols)
+        for r, c, img in zip(itertools.count(0, 1 / ncols),
+                             itertools.cycle(list(range(ncols))), self.images):
+            r = int(math.floor(r))
+            axes[r, c].imshow(img.image)
+            points = self.get_keypoints(img).reshape(-1, 2)[::-1]
+            axes[r, c].plot(points[..., 0], points[..., 1], 'r+')
+            axes[r, c].axis('off')
+        plt.show()
 
 
 def global_matches(images):
-    feature_detectors = [ORB(n_keypoints=3000) for i in range(4)]
-    for detector, image in zip(feature_detectors, images):
-        detector.detect_and_extract(image[..., 1])
-
-    matches = [{first: second for first, second
-                in match_descriptors(detector1.descriptors, detector2.descriptors, cross_check=True)}
-               for detector1, detector2 in pairs(feature_detectors)]
-
-    global_matches = []
-    for first in matches[0]:
-        point = [first]
-        try:
-            for pair in matches:
-                point.append(pair[point[-1]])
-            global_matches.append(point)
-        except KeyError:
-            pass
-
-    points = np.zeros((len(global_matches), 4, 2))
-    for i in range(len(global_matches)):
-        for j in range(4):
-            points[i, j] = feature_detectors[j].keypoints[global_matches[i][j], ::-1]
-
-    return points
+    """
+    Get coordinates for matching features in each of the input images.
+    :param images: a list of image objects (as numpy arrays)
+    :return: a 3D numpy array with coordinates for matching features in all the
+             given images
+    """
+    image_features = [ImageFeatures(ix, img) for ix, img in enumerate(images)]
+    fm = FeatureMatcher(image_features)
+    kp = fm.get_keypoints(*image_features)
+    return kp
