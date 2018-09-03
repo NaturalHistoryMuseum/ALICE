@@ -77,12 +77,18 @@ class View(object):
         bounds = self.transform.inverse(box_image)
         offset = np.stack(bounds).min(axis=0).min(axis=0)
         shape = np.stack(bounds).max(axis=0).max(axis=0) - offset
-        scale = shape / np.array([4000, 4000])
+        output_size = [4000, 4000]
+        scale = shape / np.array(output_size)
 
         normalise = AffineTransform(scale=scale) + AffineTransform(translation=offset)
-
-        return warp(image, normalise + self.transform, output_shape=(4000, 4000),
-                    mode='constant')[1000:-1000, 1000:-1000]
+        warped_coords = (normalise + self.transform).inverse(self.coordinates)
+        midpoint = warped_coords.mean(axis=0).astype(int)
+        min_side = midpoint - 1000
+        max_side = midpoint + 1000
+        min_side[min_side < 0] = 0
+        max_side[max_side > output_size[0]] = output_size[0]
+        return warp(image, normalise + self.transform, output_shape=tuple(output_size),
+                    mode='constant')[min_side[0]:max_side[0], min_side[1]:max_side[1]]
 
     def display(self, pattern_image, set_image=True):
         """
