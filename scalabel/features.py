@@ -15,14 +15,37 @@ class ImageFeatures(object):
     :param image: the image object as a numpy array
     """
 
+    nkp = 3000
+
     def __init__(self, ix, image):
         self.ix = ix
         self.image = image
         self.grey = rgb2gray(self.image)
-        self.detector = ORB(n_keypoints=3000)
+        self.detector = ORB(n_keypoints=self.nkp)
         self.detector.detect_and_extract(self.grey)
         self.descriptors = self.detector.descriptors
         self.keypoints = self.detector.keypoints
+        self.remove_keypoints()
+
+    def remove_keypoints(self):
+        """
+        Get rid of keypoints around the edges.
+        """
+        indices = []
+        for ki, k in enumerate(self.keypoints):
+            i, j = k.astype(int)
+            limit = 5
+            region = self.image[i - limit:i + limit + 1, j - limit:j + limit + 1]
+            if (region.sum(axis=2) > 0).all():
+                indices.append(ki)
+        self.keypoints = self.keypoints[np.array(indices)]
+        self.descriptors = self.descriptors[np.array(indices)]
+        centrepoint = self.keypoints.mean(axis=0)
+        distances = abs(self.keypoints - centrepoint)
+        indices = np.argsort((distances * distances.std(axis=0)).max(axis=1))[
+                  :self.nkp - 100]
+        self.keypoints = self.keypoints[indices]
+        self.descriptors = self.descriptors[indices]
 
 
 class FeatureMatcher(object):
@@ -98,15 +121,18 @@ class FeatureMatcher(object):
             axes[r, c].axis('off')
         plt.show()
 
-
-def global_matches(images):
-    """
-    Get coordinates for matching features in each of the input images.
-    :param images: a list of image objects (as numpy arrays)
-    :return: a 3D numpy array with coordinates for matching features in all the
-             given images
-    """
-    image_features = [ImageFeatures(ix, img) for ix, img in enumerate(images)]
-    fm = FeatureMatcher(image_features)
-    kp = fm.get_keypoints(*image_features)
-    return kp
+    @classmethod
+    def global_matches(cls, images, visualise=False):
+        """
+        Get coordinates for matching features in each of the input images.
+        :param visualise: boolean - display the images with the features marked if True
+        :param images: a list of image objects (as numpy arrays)
+        :return: a 3D numpy array with coordinates for matching features in all the
+                 given images
+        """
+        image_features = [ImageFeatures(ix, img) for ix, img in enumerate(images)]
+        fm = cls(image_features)
+        kp = fm.get_keypoints(*image_features)
+        if visualise:
+            fm.visualise()
+        return kp

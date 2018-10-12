@@ -79,3 +79,7 @@ class Calibrator(object):
         :return: dict
         """
         return {v.id: v for v in self._views}
+
+    def visualise(self):
+        for v in self._views:
+            v.display()
