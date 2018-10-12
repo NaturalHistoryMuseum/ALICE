@@ -5,3 +5,4 @@ data
 .idea
 scratch*
 .pytest_cache
+*.npy
