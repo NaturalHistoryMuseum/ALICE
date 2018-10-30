@@ -197,5 +197,5 @@ class ViewPosition(object):
         fig.tight_layout()
         fig.canvas.draw()
         img_array = np.array(fig.canvas.renderer._renderer)
-        plt.close()
+        plt.close('all')
         return img_array

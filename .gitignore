@@ -1,5 +1,5 @@
 *.pyc
-data
+data/calibration
 *.png
 .ipynb_checkpoints
 .idea

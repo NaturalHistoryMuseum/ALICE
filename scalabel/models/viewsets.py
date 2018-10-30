@@ -53,8 +53,9 @@ class Label(ViewSet):
         """
         nrow = 1
         ncol = len(self.views) + 1
+        rows = [(self.views[0].image, len(self.views) + 1)]
         fig, axes = plt.subplots(nrows=nrow, ncols=ncol,
-                                 figsize=(ncol * 6, nrow * 5),
+                                 figsize=self._figsize(rows),
                                  squeeze=True)
         for ax, (title, img) in zip(axes.ravel(),
                                     [(v.position.id, v.image) for v in self.views] + [
@@ -67,8 +68,16 @@ class Label(ViewSet):
         fig.tight_layout()
         fig.canvas.draw()
         img_array = np.array(fig.canvas.renderer._renderer)
-        plt.close()
+        plt.close('all')
         return img_array
+
+    def save(self, fn):
+        """
+        Save the combined image as a file.
+        :param fn: the file name/path
+
+        """
+        plt.imsave(fn, self.image)
 
 
 class Specimen(ViewSet):
@@ -115,9 +124,10 @@ class Specimen(ViewSet):
         """
         nrow = len(self.labels) + 1
         ncol = len(self.views)
-        viewfig, viewaxes = plt.subplots(ncols=ncol, figsize=(ncol * 6, 5))
+        rows = [(self.views[0].image, len(self.views))]
+        viewfig, viewaxes = plt.subplots(ncols=ncol, figsize=self._figsize(rows))
         for ax, view in zip(viewaxes, self.views):
-            ax.imshow(view.original)
+            ax.imshow(view.image if len(self.labels) == 0 else view.original)
             ax.axis('off')
             ax.xaxis.set_visible(False)
             ax.yaxis.set_visible(False)
@@ -126,8 +136,10 @@ class Specimen(ViewSet):
         viewfig.canvas.draw()
         views = np.array(viewfig.canvas.renderer._renderer)
 
+        rows = [(views, 1),
+                *[(l.display, 1) for l in self.labels]]
         fig, axes = plt.subplots(nrows=nrow,
-                                 figsize=(ncol * 6, nrow * 5))
+                                 figsize=self._figsize(rows))
         if nrow == 1:
             axes = [axes]
         for ax, img in zip(axes, [views] + [l.display for l in self.labels]):
@@ -138,7 +150,7 @@ class Specimen(ViewSet):
         fig.tight_layout()
         fig.canvas.draw()
         img_array = np.array(fig.canvas.renderer._renderer)
-        plt.close()
+        plt.close('all')
         return img_array
 
 
@@ -226,8 +238,9 @@ class Calibrator(ViewSet):
         :return: an image as a numpy array
 
         """
+        rows = [(self.views[0].display, len(self.views))]
         fig, axes = plt.subplots(1, len(self.views),
-                                 figsize=(len(self.views) * 2, len(self.views) // 2),
+                                 figsize=self._figsize(rows),
                                  squeeze=True)
         for ax, view in zip(axes.ravel(), self.views):
             ax.imshow(view.display)
@@ -238,7 +251,7 @@ class Calibrator(ViewSet):
         fig.tight_layout()
         fig.canvas.draw()
         img_array = np.array(fig.canvas.renderer._renderer)
-        plt.close()
+        plt.close('all')
         return img_array
 
     def __getitem__(self, item):

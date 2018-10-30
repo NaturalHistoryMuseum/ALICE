@@ -79,15 +79,30 @@ class ViewSet(object):
     def __init__(self, views):
         self.views = views
 
+    @staticmethod
+    def _figsize(rows):
+        """
+        Helper method to get a figure size for display images.
+        :param rows: a list of tuples of (example_image, number_in_row)
+        :return: (w,h)
+        """
+        max_width = max(i.shape[1] * n for i, n in rows)
+        height = sum([i.shape[0] for i, n in rows])
+        ratio = height / max_width
+        w = 20
+        h = int(w * ratio)
+        return w, h
+
     @property
     def display(self):
         """
-        Returns a display image (all view images in a row, with labels).
+        Returns a display image (all view images in a row, with titles).
         :return: an image as a numpy array
 
         """
         fig, axes = plt.subplots(1, len(self.views),
-                                 figsize=(len(self.views) * 2, len(self.views) // 2),
+                                 figsize=self._figsize(
+                                     [(self.views[0].image, len(self.views))]),
                                  squeeze=True)
         for ax, view in zip(axes.ravel(), self.views):
             ax.imshow(view.image)
@@ -98,7 +113,7 @@ class ViewSet(object):
         fig.tight_layout()
         fig.canvas.draw()
         img_array = np.array(fig.canvas.renderer._renderer)
-        plt.close()
+        plt.close('all')
         return img_array
 
     def show(self):
@@ -107,6 +122,8 @@ class ViewSet(object):
 
         """
         plt.imshow(self.display)
+        plt.axis('off')
+        plt.tight_layout()
         plt.show()
 
     def save(self, fn):

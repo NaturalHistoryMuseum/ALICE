@@ -4,6 +4,7 @@ from skimage.feature import ORB
 from skimage.transform import rescale
 
 from .base import View
+from .logger import logger
 
 
 class LoadingView(View):
@@ -80,7 +81,7 @@ class FeaturesView(View):
     :param nkp: the number of keypoints to find - if None, no limit/target.
 
     """
-    nkp = 3000
+    nkp = 4000
 
     def __init__(self, view_position, image, original, nkp=None):
         super(FeaturesView, self).__init__(view_position, image, original)
@@ -92,16 +93,18 @@ class FeaturesView(View):
         self.detector.detect_and_extract(self.grey)
         self.descriptors = self.detector.descriptors
         self.keypoints = self.detector.keypoints
+        logger.debug(f'found {len(self.keypoints)} keypoints in view {self.position.id}')
 
     @classmethod
-    def from_view(cls, view):
+    def from_view(cls, view, nkp=None):
         """
         Create a new instance of this class from another instance of a View class or
-        subclass. Uses the class-defined number of keypoints.
+        subclass. Uses the class-defined number of keypoints if not given.
         :param view: the view to transform
+        :param nkp: the number of keypoints to find
 
         """
-        return cls(view.position, view.image, view.original, nkp=cls.nkp)
+        return cls(view.position, view.image, view.original, nkp=nkp or cls.nkp)
 
     def tidy(self, n=None):
         """
@@ -110,6 +113,7 @@ class FeaturesView(View):
                   whatever is necessary.
 
         """
+        nkp = len(self.keypoints)
         indices = []
         for ki, k in enumerate(self.keypoints):
             i, j = k.astype(int)
@@ -126,6 +130,8 @@ class FeaturesView(View):
             indices = indices[:n]
         self.keypoints = self.keypoints[indices]
         self.descriptors = self.descriptors[indices]
+        logger.debug(f'removed {nkp - len(self.keypoints)} '
+                     f'keypoints from view {self.position.id}')
         return self
 
     @property
@@ -146,5 +152,5 @@ class FeaturesView(View):
         fig.tight_layout()
         fig.canvas.draw()
         img_array = np.array(fig.canvas.renderer._renderer)
-        plt.close()
+        plt.close('all')
         return img_array

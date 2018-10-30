@@ -67,13 +67,18 @@ class LabelSpecimen(Specimen):
                 for y, x in crops]
             current_label_view = Label(self.id,
                                        [FeaturesView(view.position, view.image[crop],
-                                                     view.original) for view, crop in
+                                                     view.image[crop]) for view, crop in
                                         zip(self.views, equal_crops)])
             if all([lv.image.size > 0 for lv in current_label_view.views]):
                 label_views.append(current_label_view)
+        if len(label_views) == 0:
+            logger.error(f'did not find any labels in {len(self.keypoints)} keypoints!')
+            raise Exception('No labels found.')
+        else:
+            logger.debug(f'found {len(label_views)} labels.')
         return label_views
 
-    def pearl(self, k=1000, max_iterations=30, minimum_support=10):
+    def pearl(self, k=500, max_iterations=30, minimum_support=10):
         """
         Finds groups of keypoints that look like labels. PEaRL: Propose, Expand,
         and ReLearn.
@@ -116,27 +121,6 @@ class LabelSpecimen(Specimen):
                     zip(distances.flatten(), indices.flatten())):
                 if index != i:
                     yield (*sorted((i, index)), int(distance))
-
-    @property
-    def display(self):
-        """
-        Returns a display image (the labels in rows).
-        :return: an image as a numpy array
-
-        """
-        fig, axes = plt.subplots(nrows=len(self.labels), ncols=len(self.views),
-                                 figsize=(len(self.views) * 2, len(self.labels)))
-        if len(axes.shape) == 1:
-            axes = axes.reshape((1, -1))
-        for label, row in zip(self.labels, axes):
-            for label_view, ax in zip(label.views, row):
-                ax.imshow(label_view.image)
-                ax.axis('off')
-            fig.tight_layout()
-        fig.canvas.draw()
-        img_array = np.array(fig.canvas.renderer._renderer)
-        plt.close()
-        return img_array
 
     @staticmethod
     def _crop(points, border=0.5):

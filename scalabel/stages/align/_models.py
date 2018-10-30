@@ -2,6 +2,7 @@ import numpy as np
 import skimage
 import skimage.transform
 import skimage.transform
+from matplotlib import pyplot as plt
 from skimage.feature import match_descriptors
 from skimage.measure import ransac
 
@@ -104,3 +105,34 @@ class AlignedLabel(Label):
             n_sor_iterations, col_type)
 
         return np.stack((u, v), axis=2)
+
+    @property
+    def display(self):
+        """
+        Returns a display image (the original view images plus the merged image,
+        and the aligned view images plus the merged image).
+        :return: an image as a numpy array
+
+        """
+        nrow = 2
+        ncol = len(self.views) + 1
+        rows = [(self.views[0].original, len(self.views)),
+                (self.views[0].image, len(self.views) + 1)]
+        fig, axes = plt.subplots(nrows=nrow, ncols=ncol,
+                                 figsize=self._figsize(rows),
+                                 squeeze=True)
+        originals = [(v.position.id, v.original) for v in self.views] + [
+            ('combined', np.median(np.stack([v.original for v in self.views]), axis=0))]
+        warped = [(v.position.id, v.image) for v in self.views] + [
+            ('combined', self.image)]
+        for ax, (title, img) in zip(axes.ravel(), originals + warped):
+            ax.imshow(img)
+            ax.axis('off')
+            ax.xaxis.set_visible(False)
+            ax.yaxis.set_visible(False)
+            ax.set(title=title)
+        fig.tight_layout()
+        fig.canvas.draw()
+        img_array = np.array(fig.canvas.renderer._renderer)
+        plt.close('all')
+        return img_array

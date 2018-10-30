@@ -6,6 +6,7 @@ from skimage.feature import match_descriptors
 
 from scalabel.models import Specimen
 from scalabel.models.views import FeaturesView
+from scalabel.models.logger import logger
 
 
 class FeaturesSpecimen(Specimen):
@@ -34,10 +35,21 @@ class FeaturesSpecimen(Specimen):
         :param specimen: the specimen to transform
 
         """
-        views = [FeaturesView.from_view(v).tidy() for v in specimen.views]
-        min_kp = min([len(v.keypoints) for v in views])
-        views = [v.tidy(n=min_kp) for v in views]
-        return cls(specimen.id, views)
+        nkp = 3000
+
+        def _make_fv(kp):
+            views = [FeaturesView.from_view(v, kp).tidy() for v in specimen.views]
+            min_kp = min([len(v.keypoints) for v in views])
+            views = [v.tidy(n=min_kp) for v in views]
+            return cls(specimen.id, views)
+
+        while nkp < 6000:
+            fv = _make_fv(nkp)
+            if len(fv.global_matches) > 100:
+                break
+            nkp += 1000
+
+        return fv
 
     def match(self, other):
         """
@@ -90,20 +102,22 @@ class FeaturesSpecimen(Specimen):
         :return: an image as a numpy array
 
         """
-        ncols = 2
-        fig, axes = plt.subplots(nrows=int(len(self.views) / ncols), ncols=ncols)
-        for ax, img in zip(axes.ravel(), self.views):
-            ax.imshow(img.image)
-            points = self._common_keypoints(img).reshape(-1, 2)[::-1]
+        fig, axes = plt.subplots(1, len(self.views),
+                                 figsize=self._figsize(
+                                     [(self.views[0].image, len(self.views))]),
+                                 squeeze=True)
+        for ax, view in zip(axes.ravel(), self.views):
+            ax.imshow(view.image)
+            points = self._common_keypoints(view).reshape(-1, 2)[::-1]
             ax.plot(points[..., 0], points[..., 1], 'r+')
-        for ax in axes.ravel():
             ax.axis('off')
             ax.xaxis.set_visible(False)
             ax.yaxis.set_visible(False)
+            ax.set(title=view.position.id)
         fig.tight_layout()
         fig.canvas.draw()
         img_array = np.array(fig.canvas.renderer._renderer)
-        plt.close()
+        plt.close('all')
         return img_array
 
     @cached_property
@@ -118,4 +132,5 @@ class FeaturesSpecimen(Specimen):
         kp = self._common_keypoints(*self.views)
         if visualise:
             self.show()
+        logger.debug(f'{len(kp)} common keypoints found')
         return kp
