@@ -1,29 +1,39 @@
-import matplotlib.pyplot as plt
 import numpy as np
 import re
+from matplotlib import pyplot as plt
 from matplotlib.patches import Polygon
 from skimage import color, filters, measure
-from skimage.transform import AffineTransform, estimate_transform, rescale, warp, SimilarityTransform
+from skimage.transform import (AffineTransform, SimilarityTransform, estimate_transform,
+                               rescale, warp)
 
 
-class View(object):
+class ViewPosition(object):
     """
     Defines a single camera angle or view of the specimen.
     :param view_id: an identifier for the view, e.g. ALICE3 or just 3
     :param coordinates: the four corners of a rectangle as viewed from this angle;
-                        specified in the order [bottom left, top left, top right,
-                        bottom right]
+            specified in the order [bottom left, top left, top right, bottom
+            right]
+    :param scaled: the current scale of the view relative to the original size
+
     """
 
-    def __init__(self, view_id, coordinates: np.array):
+    def __init__(self, view_id, coordinates: np.array, scaled=1):
         self.id = view_id
         self.coordinates = coordinates
         self._transform = None
-        self.scaled = 1
-        self.pattern = None
+        self.scaled = scaled
 
     @classmethod
     def click(cls, pattern, filename):
+        """
+        Create a new ViewPosition instance by selecting the coordinates of a square on
+        a calibration image.
+        :param pattern: the calibration image
+        :param filename: the name of the file (for extracting the identifier - the
+                         file is not read)
+
+        """
         alice_id = re.findall('(ALICE\d)', filename)
         alice_id = alice_id[0] if len(alice_id) > 0 else filename
         view_id = input('View ID [{0}]: '.format(alice_id))
@@ -34,24 +44,34 @@ class View(object):
             coords.append((int(event.xdata), int(event.ydata)))
             plt.close()
 
+        def _move(event):
+            if not event.inaxes:
+                return
+            lx.set_ydata(int(event.ydata))
+            ly.set_xdata(int(event.xdata))
+            plt.draw()
+
         for t in ['red', 'green', 'blue', 'purple']:
             fig = plt.figure()
             ax = fig.add_subplot(111)
             ax.set_title(t)
+            lx = ax.axhline(color=t, linewidth=1)
+            ly = ax.axvline(color=t, linewidth=1)
             plt.imshow(pattern)
+            fig.canvas.mpl_connect('motion_notify_event', _move)
             fig.canvas.mpl_connect('button_press_event', _click)
             plt.plot([c[0] for c in coords], [c[1] for c in coords], 'r+')
             plt.show()
 
-        vw = View(view_id, np.array(coords))
-        vw.pattern = pattern
-        return vw
+        return cls(view_id, np.array(coords))
 
     @property
     def transform(self):
         """
-        Recalculate the transformation needed to warp the coordinates into a square.
-        :return:
+        The transformation needed to warp the coordinates into a
+        square.
+        :return: a transform
+
         """
         if self._transform is None:
             square = np.array([[0, 1], [0, 0], [1, 0], [1, 1]])
@@ -60,9 +80,13 @@ class View(object):
                                                  self.coordinates)
         return self._transform
 
-    def move_coords(self, image):
-        img_dim = np.roll(image.shape[:2], 1)
+    def move_coords(self, img_dim):
+        """
+        Transform the coordinates to take up the maximum amount of space and move into
+        the center.
+        :param img_dim: the dimensions of the pattern images
 
+        """
         # scale
         bbox_size = self.coordinates.max(axis=0) - self.coordinates.min(axis=0)
         scale = (img_dim / bbox_size).min()
@@ -79,19 +103,20 @@ class View(object):
 
     def scale(self, scale):
         """
-        Scale the coordinates and recalculate the transformation.
+        Return a new ViewPosition with the coordinates scaled to the specified factor.
         :param scale: the scale factor
+        :return: ViewPosition
+
         """
-        self.coordinates *= scale
-        self.scaled *= scale
-        self._transform = None
+        return ViewPosition(self.id, self.coordinates * scale, self.scaled * scale)
 
     def detect_regions(self, image):
         """
-        Use thresholding and region detection to attempt to find a square containing
-        the specimen.
+        Use thresholding and region detection to attempt to find a square
+        containing the specimen.
         :param image: the image to process
-        :return: an image cropped to a square (using the original height or width)
+        :returns: an image cropped to a square (using the original height or width)
+
         """
         grey = color.rgb2gray(image)
         h, w = grey.shape
@@ -113,14 +138,13 @@ class View(object):
 
     def apply_transform(self, image):
         """
-        Apply the view transformation to the given image, warping it to correct
-        perspective distortion.
+        Apply the view transformation to the given image, warping it to
+        correct perspective distortion.
         :param image: the image to warp
-        :return: a warped image object
+        :returns: a warped image object
+
         """
-        #image = self.detect_regions(image)
-        self.move_coords(image)
-        self.pattern = image
+        self.move_coords(np.roll(image.shape[:2], 1))
         height, width = image.shape[:2]
         box_image = np.array([[0, height], [0, 0], [width, 0], [width, height]])
         bounds = self.transform.inverse(box_image)
@@ -141,23 +165,17 @@ class View(object):
         cropped = warped[min_side[0]:max_side[0], min_side[1]:max_side[1]]
         return warped
 
-    def display(self, pattern_image=None, set_image=True):
+    def display(self, image):
         """
-        Displays the calibration coordinates plotted on the pattern image, and the
-        warped pattern image calculated from the transform. Useful for debugging.
-        :param pattern_image: the image to use; does not have to be a calibration pattern
-        :param set_image: if True, will set the image as the view's calibration pattern
+        Displays the calibration coordinates plotted on the pattern image,
+        and the warped pattern image calculated from the transform. Useful for
+        debugging.
+        :param image: the image to use; does not have to be a calibration pattern
+
         """
-        if pattern_image is None and self.pattern is None:
-            return
-        elif pattern_image is None:
-            display_image = self.pattern
-        else:
-            display_image = rescale(pattern_image.copy(), self.scaled,
-                                    anti_aliasing=True,
-                                    multichannel=True)
-            if set_image:
-                self.pattern = display_image
+        display_image = rescale(image.copy(), self.scaled,
+                                anti_aliasing=True,
+                                multichannel=True)
 
         fs = tuple([i / 200 for i in display_image.shape[:2]])
         fig, axes = plt.subplots(ncols=2, figsize=fs)
@@ -165,13 +183,19 @@ class View(object):
         # unwarped
         axes[0].imshow(display_image)
         axes[0].plot(*self.coordinates.mean(axis=0), 'bo')
-        axes[0].axis('off')
-        perimeter = Polygon(self.coordinates, linewidth=3, facecolor='none',
+        perimeter = Polygon(self.coordinates, linewidth=2, facecolor='none',
                             edgecolor='r')
         axes[0].add_patch(perimeter)
 
         # warped
         axes[1].imshow(self.apply_transform(display_image))
-        axes[1].axis('off')
 
-        plt.show()
+        for ax in axes.ravel():
+            ax.axis('off')
+            ax.xaxis.set_visible(False)
+            ax.yaxis.set_visible(False)
+        fig.tight_layout()
+        fig.canvas.draw()
+        img_array = np.array(fig.canvas.renderer._renderer)
+        plt.close()
+        return img_array

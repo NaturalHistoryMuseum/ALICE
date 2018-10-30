@@ -11,12 +11,25 @@ from skimage.transform import estimate_transform
 
 @njit
 def coords_to_index(coords, shape):
+    """
+
+    :param coords:
+    :param shape: 
+
+    """
     j, i = coords
     return i * shape[1] + j
 
 
 @njit
 def closest_corners(location, grid_dimensions, grid_separation):
+    """
+
+    :param location:
+    :param grid_separation: 
+    :param grid_dimensions: 
+
+    """
     x, y = location[0] / grid_separation[1], location[1] / grid_separation[0]
     x1 = np.floor(x)
     y1 = np.floor(y)
@@ -47,6 +60,13 @@ def closest_corners(location, grid_dimensions, grid_separation):
 
 @njit
 def sparse_data_weights(P, grid_dimensions, grid_separation):
+    """
+
+    :param P:
+    :param grid_separation: 
+    :param grid_dimensions: 
+
+    """
     num_features = P.shape[0]
     w = np.zeros(num_features * 8)
     row = np.zeros(num_features * 8)
@@ -67,7 +87,13 @@ def sparse_data_weights(P, grid_dimensions, grid_separation):
 
 
 class SimilarAsPossible:
-    '''Based on section 3.2 from 'Bundled Camera Paths for Video Stabilization'.'''
+    """
+    Based on section 3.2 from 'Bundled Camera Paths for Video
+    Stabilization'.
+    :param shape:
+    :param grid_separation:
+
+    """
     R90 = coo_matrix(np.array([[0, 1], [-1, 0]]))
 
     def __init__(self, shape, grid_separation):
@@ -77,6 +103,12 @@ class SimilarAsPossible:
         self.s = grid_separation[0] / grid_separation[1]
 
     def data_term(self, P, P_hat):
+        """
+
+        :param P:
+        :param P_hat: 
+
+        """
         num_features = P.shape[0]
         A = coo_matrix(sparse_data_weights(P, (self.height + 1, self.width + 1), self.grid_separation),
                        shape=(num_features * 2, self.num_vertices * 2))
@@ -84,6 +116,11 @@ class SimilarAsPossible:
         return A, b
 
     def triangle_indices(self, coords):
+        """
+
+        :param coords: 
+
+        """
         corners = np.array(coords).T
         indices = np.ravel_multi_index(corners, (self.height + 1, self.width + 1))
         x_indices = indices * 2
@@ -93,6 +130,7 @@ class SimilarAsPossible:
 
     @property
     def triangles(self):
+        """ """
         for i in range(self.height):
             for j in range(self.width):
                 # this is a quad -> two triangles
@@ -100,6 +138,7 @@ class SimilarAsPossible:
                 yield self.triangle_indices([[i + 1, j + 1], [i, j], [i, j + 1]])
 
     def shape_preserving_term(self):
+        """ """
         c = coo_matrix(([1, 1], ((0, 1), (0, 1))), shape=(2, 6))
         c0 = coo_matrix(([1, 1], ((0, 1), (2, 3))), shape=(2, 6))
         c1 = coo_matrix(([1, 1], ((0, 1), (4, 5))), shape=(2, 6))
@@ -110,6 +149,13 @@ class SimilarAsPossible:
         return A, b
 
     def fit(self, P, P_hat, alpha):
+        """
+
+        :param P:
+        :param P_hat:
+        :param alpha:
+
+        """
         A_data, b_data = self.data_term(P, P_hat)
         A_shape, b_shape = self.shape_preserving_term()
         A = vstack([A_data, alpha**2 * A_shape])
@@ -130,6 +176,12 @@ class SimilarAsPossible:
 
 
 def warp_flow(image, flow):
+    """
+
+    :param image:
+    :param flow: 
+
+    """
     height, width = image.shape[:2]
     grid = np.stack(np.mgrid[:height, :width], axis=2)
 
@@ -143,6 +195,12 @@ def warp_flow(image, flow):
 
 
 def bidirectional_similarity(flow_forward, flow_reverse):
+    """
+
+    :param flow_forward:
+    :param flow_reverse: 
+
+    """
     height, width = flow_forward.shape[:2]
     grid = np.stack(np.mgrid[:height, :width], axis=2)
 

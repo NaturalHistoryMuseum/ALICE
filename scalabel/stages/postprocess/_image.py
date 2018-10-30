@@ -4,6 +4,12 @@ import skimage
 
 
 def improve_contrast(image, discard=5):
+    """
+
+    :param image: param discard: (Default value = 5)
+    :param discard:  (Default value = 5)
+
+    """
     image = skimage.img_as_float(image)
     out = np.zeros_like(image)
 
@@ -17,6 +23,12 @@ def improve_contrast(image, discard=5):
 
 @njit
 def weighted_median(images, masks):
+    """
+
+    :param images: param masks:
+    :param masks: 
+
+    """
     height, width = images[0].shape[:2]
 
     out = np.zeros((height, width, 3))
