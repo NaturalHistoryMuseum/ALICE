@@ -1,11 +1,9 @@
 import numpy as np
-from matplotlib import pyplot as plt
 from scalabel.pygco import cut_from_graph
 from sklearn.neighbors import NearestNeighbors
 
-from scalabel.models import MultipleTransformations, Specimen
+from scalabel.models import MultipleTransformations, Specimen, View
 from scalabel.models.logger import logger
-from scalabel.models.views import FeaturesView
 from scalabel.models.viewsets import Label
 from ._features import FeaturesSpecimen
 
@@ -33,7 +31,7 @@ class LabelSpecimen(Specimen):
 
         """
         assert isinstance(specimen, FeaturesSpecimen)
-        return cls(specimen.id, specimen.views, specimen.global_matches)
+        return cls(specimen.id, specimen.views, specimen.comparer.global_matches)
 
     def _find_labels(self):
         """
@@ -65,10 +63,9 @@ class LabelSpecimen(Specimen):
                  slice((x.stop + x.start - width) // 2,
                        (x.stop + x.start + width) // 2))
                 for y, x in crops]
-            current_label_view = Label(self.id,
-                                       [FeaturesView(view.position, view.image[crop],
-                                                     view.image[crop]) for view, crop in
-                                        zip(self.views, equal_crops)])
+            views = [View(view.position, view.image[crop], view.image[crop]) for
+                     view, crop in zip(self.views, equal_crops)]
+            current_label_view = Label(self.id, views)
             if all([lv.image.size > 0 for lv in current_label_view.views]):
                 label_views.append(current_label_view)
         if len(label_views) == 0:

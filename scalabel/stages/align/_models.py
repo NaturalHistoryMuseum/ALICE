@@ -9,6 +9,7 @@ from skimage.measure import ransac
 from scalabel import pyflow
 from scalabel.models import Label
 from scalabel.models.views import WarpedView
+from scalabel.models.viewsets import FeatureComparer
 from ._warping import SimilarAsPossible, bidirectional_similarity
 
 
@@ -23,9 +24,9 @@ class AlignedLabel(Label):
 
     def __init__(self, specimen_id, views):
         super(AlignedLabel, self).__init__(specimen_id, views)
-
+        self.comparer = FeatureComparer.ensure_minimum(specimen_id, views)
         # align homography (using FeaturesView objects)
-        self.views[1:] = [self._homography(v) for v in self.views[1:]]
+        self.views[1:] = [self._homography(v) for v in self.comparer.views[1:]]
         self.views[0] = WarpedView(self.views[0].position, self.views[0].image,
                                    self.views[0].original)
         self.views[1:] = [self._regularised_flow(v) for v in self.views[1:]]
@@ -38,10 +39,11 @@ class AlignedLabel(Label):
         :param view: the view to compare to the base view and warp as necessary
 
         """
-        matches = match_descriptors(view.descriptors,
-                                    self.views[0].descriptors, cross_check=True)
+        # matches = match_descriptors(view.descriptors,
+        #                             self.views[0].descriptors, cross_check=True)
+        matches = self.comparer.get_matches(self.views[0], view)
         src = view.keypoints[matches[:, 0], ::-1]
-        dst = self.views[0].keypoints[matches[:, 1], ::-1]
+        dst = self.comparer.base_view.keypoints[matches[:, 1], ::-1]
 
         warped = np.array([np.nan])
         while np.isnan(warped.sum()):
