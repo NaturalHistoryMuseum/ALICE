@@ -4,6 +4,7 @@ import skimage.transform
 from matplotlib import pyplot as plt
 
 from .view_position import ViewPosition
+from .logger import logger
 
 
 class View(object):
@@ -88,9 +89,14 @@ class ViewSet(object):
         """
         max_width = max(i.shape[1] * n for i, n in rows)
         height = sum([i.shape[0] for i, n in rows])
-        ratio = height / max_width
-        w = 20
-        h = int(w * ratio)
+        dpi = plt.rcParams['figure.dpi']
+        if max_width / dpi > 100:
+            ratio = height / max_width
+            w = 24
+            h = int(w * ratio)
+        else:
+            w = max_width / dpi
+            h = height / dpi
         return w, h
 
     @property

@@ -2,6 +2,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 from skimage.feature import ORB
 from skimage.transform import rescale
+from skimage.color import rgb2gray
 
 from .base import View
 from .logger import logger
@@ -85,7 +86,8 @@ class FeaturesView(View):
 
     def __init__(self, view_position, image, original, nkp=None):
         super(FeaturesView, self).__init__(view_position, image, original)
-        self.grey = self.image[..., 1]
+        #self.grey = self.image[..., 1]
+        self.grey = rgb2gray(self.image)
         detector_args = {
             'n_keypoints': nkp
             } if nkp is not None else {}
@@ -143,7 +145,7 @@ class FeaturesView(View):
         """
         fs = tuple([i / 200 for i in self.image.shape[:2]])
         fig, ax = plt.subplots(figsize=fs)
-        ax.imshow(self.image)
+        ax.imshow(self.grey)
         ax.plot(self.keypoints[..., 1], self.keypoints[..., 0], 'r+')
         ax.axis('off')
         ax.xaxis.set_visible(False)

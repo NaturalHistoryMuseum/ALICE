@@ -144,6 +144,7 @@ class ViewPosition(object):
         :returns: a warped image object
 
         """
+        image = self.detect_regions(image)
         self.move_coords(np.roll(image.shape[:2], 1))
         height, width = image.shape[:2]
         box_image = np.array([[0, height], [0, 0], [width, 0], [width, height]])

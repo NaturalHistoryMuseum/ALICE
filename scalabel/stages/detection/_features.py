@@ -35,7 +35,7 @@ class FeaturesSpecimen(Specimen):
         :param specimen: the specimen to transform
 
         """
-        nkp = 3000
+        nkp = 4000
 
         def _make_fv(kp):
             views = [FeaturesView.from_view(v, kp).tidy() for v in specimen.views]
@@ -107,7 +107,7 @@ class FeaturesSpecimen(Specimen):
                                      [(self.views[0].image, len(self.views))]),
                                  squeeze=True)
         for ax, view in zip(axes.ravel(), self.views):
-            ax.imshow(view.image)
+            ax.imshow(view.grey)
             points = self._common_keypoints(view).reshape(-1, 2)[::-1]
             ax.plot(points[..., 0], points[..., 1], 'r+')
             ax.axis('off')
