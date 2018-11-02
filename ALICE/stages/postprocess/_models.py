@@ -1,4 +1,4 @@
-from scalabel.models import Label
+from ALICE.models import Label
 from ._image import improve_contrast
 
 

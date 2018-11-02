@@ -9,8 +9,8 @@ from pathlib import Path
 from skimage.morphology import closing, square, thin
 from skimage.transform import hough_line, hough_line_peaks, rescale
 
-from scalabel.stages.postprocess._image import improve_contrast
-from scalabel.models.logger import logger
+from ALICE.stages.postprocess._image import improve_contrast
+from ALICE.models.logger import logger
 
 
 class Point:

@@ -1,4 +1,4 @@
-name: scalabel
+name: ALICE
 dependencies:
 - ipython
 - matplotlib

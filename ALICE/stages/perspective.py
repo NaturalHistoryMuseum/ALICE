@@ -1,5 +1,5 @@
-from scalabel.models import Specimen, SpecimenQueue
-from scalabel.models.views import WarpedView
+from ALICE.models import Specimen, SpecimenQueue
+from ALICE.models.views import WarpedView
 
 
 def specimen_warp(specimen):

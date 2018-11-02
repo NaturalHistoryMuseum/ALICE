@@ -1,4 +1,4 @@
-from scalabel.models.viewsets import Specimen
+from ALICE.models.viewsets import Specimen
 from ._models import PostLabel
 
 

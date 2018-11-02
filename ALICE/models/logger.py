@@ -1,6 +1,6 @@
 import logging
 
-logger = logging.getLogger('scalabel')
+logger = logging.getLogger('ALICE')
 handler = logging.StreamHandler()
 formatter = logging.Formatter('%(asctime)s %(levelname)-8s %(message)s')
 handler.setFormatter(formatter)

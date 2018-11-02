@@ -1,4 +1,4 @@
-from scalabel.models import Specimen, SpecimenQueue
+from ALICE.models import Specimen, SpecimenQueue
 from ._models import AlignedLabel
 
 

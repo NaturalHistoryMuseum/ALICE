@@ -5,8 +5,8 @@ import json
 import os
 import re
 
-from scalabel.models import Specimen
-from scalabel.models.logger import logger
+from ALICE.models import Specimen
+from ALICE.models.logger import logger
 
 
 class SpecimenQueue(object):

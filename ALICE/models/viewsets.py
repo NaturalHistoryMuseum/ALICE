@@ -5,8 +5,8 @@ from cached_property import cached_property
 from matplotlib import pyplot as plt
 from skimage.feature import match_descriptors
 
-from scalabel.models.logger import logger
-from scalabel.models.views import FeaturesView
+from ALICE.models.logger import logger
+from ALICE.models.views import FeaturesView
 from .base import View, ViewSet
 from .view_position import ViewPosition
 from .views import LoadingView

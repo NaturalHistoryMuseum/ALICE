@@ -1,10 +1,10 @@
 import numpy as np
-from scalabel.pygco import cut_from_graph
+from ALICE.pygco import cut_from_graph
 from sklearn.neighbors import NearestNeighbors
 
-from scalabel.models import MultipleTransformations, Specimen, View
-from scalabel.models.logger import logger
-from scalabel.models.viewsets import Label
+from ALICE.models import MultipleTransformations, Specimen, View
+from ALICE.models.logger import logger
+from ALICE.models.viewsets import Label
 from ._features import FeaturesSpecimen
 
 

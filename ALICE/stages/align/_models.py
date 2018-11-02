@@ -6,10 +6,10 @@ from matplotlib import pyplot as plt
 from skimage.feature import match_descriptors
 from skimage.measure import ransac
 
-from scalabel import pyflow
-from scalabel.models import Label
-from scalabel.models.views import WarpedView
-from scalabel.models.viewsets import FeatureComparer
+from ALICE import pyflow
+from ALICE.models import Label
+from ALICE.models.views import WarpedView
+from ALICE.models.viewsets import FeatureComparer
 from ._warping import SimilarAsPossible, bidirectional_similarity
 
 

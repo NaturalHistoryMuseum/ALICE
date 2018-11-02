@@ -1,4 +1,4 @@
-from scalabel.models.viewsets import FeatureComparer, Specimen
+from ALICE.models.viewsets import FeatureComparer, Specimen
 
 
 class FeaturesSpecimen(Specimen):
