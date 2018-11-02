@@ -3,11 +3,11 @@ import numpy as np
 import skimage
 
 
-def improve_contrast(image, discard=5):
+def improve_contrast(image, discard=2):
     """
 
-    :param image: param discard: (Default value = 5)
-    :param discard:  (Default value = 5)
+    :param image:
+    :param discard:
 
     """
     image = skimage.img_as_float(image)
@@ -25,7 +25,7 @@ def improve_contrast(image, discard=5):
 def weighted_median(images, masks):
     """
 
-    :param images: param masks:
+    :param images:
     :param masks: 
 
     """
