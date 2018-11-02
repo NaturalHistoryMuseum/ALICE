@@ -1,6 +1,8 @@
 *.pyc
-data
+data/calibration
 *.png
 .ipynb_checkpoints
 .idea
 scratch*
+.pytest_cache
+*.npy

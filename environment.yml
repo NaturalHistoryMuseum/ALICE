@@ -1,4 +1,4 @@
-name: scalabel
+name: ALICE
 dependencies:
 - ipython
 - matplotlib
@@ -6,3 +6,4 @@ dependencies:
 - numpy
 - python=3
 - scikit-image
+- pandas
