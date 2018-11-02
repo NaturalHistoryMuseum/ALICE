@@ -2,9 +2,13 @@ import numpy as np
 import re
 from matplotlib import pyplot as plt
 from matplotlib.patches import Polygon
-from skimage import color, filters, measure
+from skimage import color, filters, measure, segmentation
+from skimage.filters import gaussian
+from skimage.future import graph
+from skimage.measure import regionprops
 from skimage.transform import (AffineTransform, SimilarityTransform, estimate_transform,
                                rescale, warp)
+from ALICE.utils.image import improve_contrast
 
 
 class ViewPosition(object):
@@ -136,6 +140,41 @@ class ViewPosition(object):
         self._transform = None
         return image.copy()[y1:y2, x1:x2]
 
+    def crop_to_labels(self, image, h = None, w = None):
+        """
+
+        :param w:
+        :param h:
+        :param image:
+        :return:
+
+        """
+        if h is None:
+            h = image.shape[0]
+        if w is None:
+            w = image.shape[1]
+        crop_size = np.array([h, w]) * 0.6
+        img = improve_contrast(image.copy(), discard=5)
+        img = gaussian(img, multichannel=True)
+
+        labels = segmentation.slic(img, compactness=30, n_segments=400)
+        g = graph.rag_mean_color(img, labels)
+        max_labels = [l for n in sorted(list(g.nodes.values()),
+                                        key=lambda x: x['mean color'].sum())[-2:] for l
+                      in n['labels']]
+        centroid = np.array(
+            [r.centroid for r in regionprops(labels) if r.label in max_labels]).mean(
+            axis=0)
+        crop_y, crop_x = np.array([centroid - (crop_size / 2),
+                                   centroid + (crop_size / 2)]).T.astype(int)
+        crop_x -= crop_x.min() if crop_x.min() < 0 else 0
+        crop_x -= (crop_x.max() - image.shape[1]) if crop_x.max() > image.shape[1] else 0
+        crop_y -= crop_y.min() if crop_y.min() < 0 else 0
+        crop_y -= (crop_y.max() - image.shape[0]) if crop_y.max() > image.shape[0] else 0
+        self._transform = None
+        cropped = improve_contrast(image.copy()[slice(*crop_y), slice(*crop_x)], 1)
+        return cropped
+
     def apply_transform(self, image):
         """
         Apply the view transformation to the given image, warping it to
@@ -144,7 +183,9 @@ class ViewPosition(object):
         :returns: a warped image object
 
         """
+        h, w = image.shape[:2]
         image = self.detect_regions(image)
+        image = self.crop_to_labels(image, h, w)
         self.move_coords(np.roll(image.shape[:2], 1))
         height, width = image.shape[:2]
         box_image = np.array([[0, height], [0, 0], [width, 0], [width, height]])
@@ -155,15 +196,8 @@ class ViewPosition(object):
         scale = shape / np.array(output_size)
 
         normalise = AffineTransform(scale=scale) + AffineTransform(translation=offset)
-        warped_coords = (normalise + self.transform).inverse(self.coordinates)
-        midpoint = warped_coords.mean(axis=0).astype(int)
-        min_side = midpoint - 1000
-        max_side = midpoint + 1000
-        min_side[min_side < 0] = 0
-        max_side[max_side > output_size[0]] = output_size[0]
         warped = warp(image, normalise + self.transform, output_shape=tuple(output_size),
                       mode='constant')
-        cropped = warped[min_side[0]:max_side[0], min_side[1]:max_side[1]]
         return warped
 
     def display(self, image):
