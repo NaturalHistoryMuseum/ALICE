@@ -86,7 +86,6 @@ class FeaturesView(View):
 
     def __init__(self, view_position, image, original, nkp=None):
         super(FeaturesView, self).__init__(view_position, image, original)
-        #self.grey = self.image[..., 1]
         self.grey = rgb2gray(self.image)
         detector_args = {
             'n_keypoints': nkp

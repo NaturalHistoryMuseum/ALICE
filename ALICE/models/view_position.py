@@ -8,6 +8,7 @@ from skimage.future import graph
 from skimage.measure import regionprops
 from skimage.transform import (AffineTransform, SimilarityTransform, estimate_transform,
                                rescale, warp)
+
 from ALICE.utils.image import improve_contrast
 
 
@@ -140,13 +141,14 @@ class ViewPosition(object):
         self._transform = None
         return image.copy()[y1:y2, x1:x2]
 
-    def crop_to_labels(self, image, h = None, w = None):
+    def crop_to_labels(self, image, h=None, w=None):
         """
-
-        :param w:
-        :param h:
-        :param image:
-        :return:
+        Attempts to find labels in the image by looking for brighter/whiter areas,
+        then crops down to that area.
+        :param w: the original image width to scale down from
+        :param h: the original image height to scale down from
+        :param image: the image to crop
+        :return: a cropped image
 
         """
         if h is None:
