@@ -4,7 +4,6 @@ from matplotlib import pyplot as plt
 from matplotlib.patches import Polygon
 from skimage import color, filters, measure, segmentation
 from skimage.filters import gaussian
-from skimage.future import graph
 from skimage.measure import regionprops
 from skimage.transform import (AffineTransform, SimilarityTransform, estimate_transform,
                                rescale, warp)
@@ -159,14 +158,11 @@ class ViewPosition(object):
         img = improve_contrast(image.copy(), discard=5)
         img = gaussian(img, multichannel=True)
 
-        labels = segmentation.slic(img, compactness=30, n_segments=400)
-        g = graph.rag_mean_color(img, labels)
-        max_labels = [l for n in sorted(list(g.nodes.values()),
-                                        key=lambda x: x['mean color'].sum())[-2:] for l
-                      in n['labels']]
-        centroid = np.array(
-            [r.centroid for r in regionprops(labels) if r.label in max_labels]).mean(
-            axis=0)
+        labels = segmentation.slic(img, compactness=100, n_segments=400)
+        regions = sorted(regionprops(labels),
+                         key=lambda x: img[list(zip(*x.coords))].mean().tolist())[
+                  -2:]
+        centroid = np.array([r.centroid for r in regions]).mean(axis=0)
         crop_y, crop_x = np.array([centroid - (crop_size / 2),
                                    centroid + (crop_size / 2)]).T.astype(int)
         crop_x -= crop_x.min() if crop_x.min() < 0 else 0
@@ -188,7 +184,7 @@ class ViewPosition(object):
         h, w = image.shape[:2]
         image = self.detect_regions(image)
         image = self.crop_to_labels(image, h, w)
-        self.move_coords(np.roll(image.shape[:2], 1))
+        self.move_coords(np.array([image.shape[:2]]))
         height, width = image.shape[:2]
         box_image = np.array([[0, height], [0, 0], [width, 0], [width, height]])
         bounds = self.transform.inverse(box_image)
