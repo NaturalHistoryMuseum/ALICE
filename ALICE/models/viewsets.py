@@ -285,7 +285,7 @@ class FeatureComparer(ViewSet):
             self.match(v)
 
     @classmethod
-    def ensure_minimum(cls, specimen_id, views, minimum=100):
+    def ensure_minimum(cls, specimen_id, views, minimum=100, start_nkp=None):
         """
         Create a new instance of this class, ensuring that there is a minimum number of
         common keypoints found between the views.
@@ -294,7 +294,7 @@ class FeatureComparer(ViewSet):
         :param minimum: the minimum number of common keypoints between them
 
         """
-        nkp = FeaturesView.nkp
+        nkp = start_nkp or FeaturesView.nkp
 
         def _make_fv(kp):
             feature_views = [FeaturesView.from_view(v, kp).tidy() for v in views]

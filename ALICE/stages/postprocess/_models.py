@@ -1,5 +1,5 @@
 from ALICE.models import Label
-from ._image import improve_contrast
+from ALICE.utils.image import improve_contrast
 
 
 class PostLabel(Label):

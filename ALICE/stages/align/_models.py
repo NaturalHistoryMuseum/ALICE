@@ -24,7 +24,7 @@ class AlignedLabel(Label):
 
     def __init__(self, specimen_id, views):
         super(AlignedLabel, self).__init__(specimen_id, views)
-        self.comparer = FeatureComparer.ensure_minimum(specimen_id, views, 10)
+        self.comparer = FeatureComparer.ensure_minimum(specimen_id, views, 10, 500)
         # align homography (using FeaturesView objects)
         self.views[1:] = [self._homography(v) for v in self.comparer.views[1:]]
         self.views[0] = WarpedView(self.views[0].position, self.views[0].image,
