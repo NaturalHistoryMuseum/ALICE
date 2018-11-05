@@ -1,0 +1,9 @@
+cython==0.29
+numpy==1.15.3
+git+https://github.com/pathak22/pyflow.git
+ipython
+matplotlib
+numba
+scikit-image
+pandas
+jupyter
