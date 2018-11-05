@@ -26,12 +26,12 @@ class AlignedLabel(Label):
         super(AlignedLabel, self).__init__(specimen_id, views)
         self.comparer = FeatureComparer.ensure_minimum(specimen_id, views, 10, 500)
         # align homography (using FeaturesView objects)
-        self.views[1:] = [self._homography(v) for v in self.comparer.views[1:]]
-        self.views[0] = WarpedView(self.views[0].position, self.views[0].image,
-                                   self.views[0].original)
+        self.views = [self._align_homography(bv, v) for bv, v in zip(self.comparer.views, np.roll(self.comparer.views, -1))]
+        # self.views[0] = WarpedView(self.views[0].position, self.views[0].image,
+        #                            self.views[0].original)
         self.views[1:] = [self._regularised_flow(v) for v in self.views[1:]]
 
-    def _homography(self, view):
+    def _align_homography(self, base_view, view):
         """
         Match features between the view and the base view, generate transform
         parameters, and warp the view image to align with the base view. Uses the
@@ -41,9 +41,9 @@ class AlignedLabel(Label):
         """
         # matches = match_descriptors(view.descriptors,
         #                             self.views[0].descriptors, cross_check=True)
-        matches = self.comparer.get_matches(self.views[0], view)
+        matches = self.comparer.get_matches(base_view, view)
         src = view.keypoints[matches[:, 0], ::-1]
-        dst = self.comparer.base_view.keypoints[matches[:, 1], ::-1]
+        dst = base_view.keypoints[matches[:, 1], ::-1]
 
         warped = np.array([np.nan])
         while np.isnan(warped.sum()):

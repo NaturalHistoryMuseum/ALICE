@@ -75,7 +75,7 @@ class LabelSpecimen(Specimen):
             logger.debug(f'found {len(label_views)} labels.')
         return label_views
 
-    def pearl(self, k=5000, max_iterations=30, minimum_support=10):
+    def pearl(self, k=1000, max_iterations=30, minimum_support=10):
         """
         Finds groups of keypoints that look like labels. PEaRL: Propose, Expand,
         and ReLearn.
