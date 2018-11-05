@@ -1,0 +1,10 @@
+Metadata-Version: 1.0
+Name: ALICE
+Version: 0.1
+Summary: ALICE: Angled Label Image Capture and Extraction
+Home-page: https://github.com/NaturalHistoryMuseum/ALICE
+Author: Alice Butcher; James Durrant; Pieter Holtzhausen; Ben Scott
+Author-email: UNKNOWN
+License: UNKNOWN
+Description: Attempts to locate and extract images of labels attached to pinned insects. Given views of the specimen from multiple angles, it can isolate the labels.
+Platform: UNKNOWN

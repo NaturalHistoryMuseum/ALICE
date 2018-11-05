@@ -1,0 +1,11 @@
+pyflow
+pygco
+cached-property
+matplotlib
+numba
+scikit-image
+scikit-learn
+pandas
+jupyter
+numpy
+cython
