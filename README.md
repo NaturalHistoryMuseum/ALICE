@@ -1,7 +1,7 @@
 # ALICE
-## Angular Label Image Capture and Extraction
+## Angled Label Image Capture and Extraction
 
-![](https://github.com/NaturalHistoryMuseum/scalabel/blob/master/example.png)
+![An example of some labels extracted from an image of a pinned insect.](https://github.com/NaturalHistoryMuseum/scalabel/blob/master/example.png)
 
 This project attempts to locate and extract images of labels attached to pinned insects. Given views of the specimen from multiple angles, it can isolate the labels.
 
@@ -20,7 +20,3 @@ This project attempts to locate and extract images of labels attached to pinned 
 ### With pip
 
 - Run `pip install git+git://github.com/NaturalHistoryMuseum/ALICE`
-
-
-## Note on licenses
-Both pyflow (https://github.com/pathak22/pyflow) and gco_python (https://github.com/amueller/gco_python; http://vision.csd.uwo.ca/code/) are included but have their own licenses. If making the repository public this needs to be accounted for.

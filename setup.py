@@ -1,37 +1,37 @@
-from setuptools import setup, find_packages
-import sys, os
+from setuptools import find_packages, setup
 
 version = '0.1'
 
 setup(
     name='ALICE',
     version=version,
-    description="",
-    long_description="""""",
-    classifiers=[], # Get strings from http://pypi.python.org/pypi?%3Aaction=list_classifiers
+    description='ALICE: Angled Label Image Capture and Extraction',
+    long_description='Attempts to locate and extract images of labels attached to '
+                     'pinned insects. Given views of the specimen from multiple angles, '
+                     'it can isolate the labels.',
+    classifiers=[],
     keywords='',
-    author='',
+    author='Alice Butcher; James Durrant; Pieter Holtzhausen; Ben Scott',
     author_email='',
-    url='',
+    url='https://github.com/NaturalHistoryMuseum/ALICE',
     license='',
     packages=find_packages(exclude=['ez_setup', 'tests']),
     include_package_data=True,
     zip_safe=False,
     install_requires=[
-        'numpy',
         'pyflow',
         'pygco',
-        'ipython',
+        'cached-property',
         'matplotlib',
         'numba',
         'scikit-image',
+        'scikit-learn',
         'pandas',
-        'jupyter'
-    ],
+        'jupyter',
+        'numpy',
+        'cython'
+        ],
     dependency_links=[
         "git+https://github.com/pathak22/pyflow#egg=pyflow",
-    ],
-    entry_points=\
-    """
-    """,
-)
+        ]
+    )
