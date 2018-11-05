@@ -6,3 +6,4 @@ data/calibration
 scratch*
 .pytest_cache
 *.npy
+.DS_Store
