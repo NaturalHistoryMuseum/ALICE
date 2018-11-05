@@ -75,7 +75,7 @@ class LabelSpecimen(Specimen):
             logger.debug(f'found {len(label_views)} labels.')
         return label_views
 
-    def pearl(self, k=500, max_iterations=30, minimum_support=10):
+    def pearl(self, k=5000, max_iterations=30, minimum_support=10):
         """
         Finds groups of keypoints that look like labels. PEaRL: Propose, Expand,
         and ReLearn.
@@ -93,7 +93,9 @@ class LabelSpecimen(Specimen):
         for iteration in range(max_iterations):
             unary = np.stack([model.residual(self.keypoints) for model in models],
                              axis=1)
-            labels = cut_from_graph(edges, unary, pairwise)
+            labels = cut_from_graph(edges=edges,
+                                       edge_weights=np.array([1] * len(edges)),
+                                       unary_cost=unary, pairwise_cost=pairwise)
             for i, model in enumerate(models):
                 inliers = (labels == i)
                 if inliers.sum() >= minimum_support:
