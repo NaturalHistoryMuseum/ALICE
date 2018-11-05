@@ -24,5 +24,3 @@ setup(
     """
     """,
 )
-
-git+https://github.com/pathak22/pyflow.git
