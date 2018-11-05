@@ -21,6 +21,6 @@ This project attempts to locate and extract images of labels attached to pinned 
 
 - Run `pip install git+git://github.com/NaturalHistoryMuseum/ALICE`
 
-## NB:
+## NB
 
-This project is under active development and may not always worked as expected or intended.
+This project is under active development and may not always work as expected or intended.
