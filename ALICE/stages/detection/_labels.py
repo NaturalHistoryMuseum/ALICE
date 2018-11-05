@@ -93,9 +93,7 @@ class LabelSpecimen(Specimen):
         for iteration in range(max_iterations):
             unary = np.stack([model.residual(self.keypoints) for model in models],
                              axis=1)
-            labels = cut_from_graph(edges=edges,
-                                       edge_weights=np.array([1] * len(edges)),
-                                       unary_cost=unary, pairwise_cost=pairwise)
+            labels = cut_from_graph(edges=edges, unary_cost=unary, pairwise_cost=pairwise)
             for i, model in enumerate(models):
                 inliers = (labels == i)
                 if inliers.sum() >= minimum_support:
