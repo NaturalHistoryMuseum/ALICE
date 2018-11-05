@@ -1,5 +1,5 @@
 import numpy as np
-from ALICE.pygco import cut_from_graph
+from pygco import cut_from_graph
 from sklearn.neighbors import NearestNeighbors
 
 from ALICE.models import MultipleTransformations, Specimen, View
