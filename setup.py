@@ -18,7 +18,19 @@ setup(
     include_package_data=True,
     zip_safe=False,
     install_requires=[
-        # -*- Extra requirements: -*-
+        'numpy',
+        'pyflow',
+        'pygco',
+        'ipython',
+        'matplotlib',
+        'numba',
+        'scikit-image',
+        'pandas',
+        'jupyter'
+    ],
+    dependency_links=[
+        "git+https://github.com/benscott/gco_python.git#egg=pygco",
+        "git+https://github.com/pathak22/pyflow#egg=pyflow",
     ],
     entry_points=\
     """
