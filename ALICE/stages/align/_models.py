@@ -2,11 +2,11 @@ import numpy as np
 import skimage
 import skimage.transform
 import skimage.transform
+import pyflow
 from matplotlib import pyplot as plt
 from skimage.feature import match_descriptors
 from skimage.measure import ransac
 
-from ALICE import pyflow
 from ALICE.models import Label
 from ALICE.models.views import WarpedView
 from ALICE.models.viewsets import FeatureComparer
@@ -90,7 +90,8 @@ class AlignedLabel(Label):
         :param reverse: if True, use the given image as the base
 
         """
-        target = skimage.img_as_float(image if reverse else self.views[0].image)
+        target = skimage.img_as_float(
+            image if reverse else self.views[0].image)
         other = skimage.img_as_float(self.views[0].image if reverse else image)
         # Flow Options:
         alpha = 0.012
@@ -99,7 +100,8 @@ class AlignedLabel(Label):
         n_outer_fp_iterations = 7
         n_inner_fp_iterations = 1
         n_sor_iterations = 30
-        col_type = 0  # 0 or default:RGB, 1:GRAY (but pass gray image with shape (h,w,1))
+        # 0 or default:RGB, 1:GRAY (but pass gray image with shape (h,w,1))
+        col_type = 0
 
         u, v, im2_w = pyflow.coarse2fine_flow(
             target.copy(order='C'), other.copy(order='C'),

@@ -1,5 +1,5 @@
 import numpy as np
-from gco.pygco import cut_general_graph
+from pygco import cut_from_graph
 from sklearn.neighbors import NearestNeighbors
 
 from ALICE.models import MultipleTransformations, Specimen, View
@@ -93,7 +93,7 @@ class LabelSpecimen(Specimen):
         for iteration in range(max_iterations):
             unary = np.stack([model.residual(self.keypoints) for model in models],
                              axis=1)
-            labels = cut_general_graph(edges=edges,
+            labels = cut_from_graph(edges=edges,
                                        edge_weights=np.array([1] * len(edges)),
                                        unary_cost=unary, pairwise_cost=pairwise)
             for i, model in enumerate(models):

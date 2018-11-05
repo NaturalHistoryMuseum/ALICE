@@ -14,5 +14,13 @@ This project attempts to locate and extract images of labels attached to pinned 
 4) **Align:** since the perspective correction of the images is only approximate, the cropped label images need to be aligned more closely in order to overlay them correctly. With labels aligned pixel-wise, a median filter is then applied per-pixel so that anything only visible in a minority of views (such as a pin) will no longer be visible.
 5) **Postprocess:** apply filters to improve contrast, etc.
 
+
+## Installation
+
+### With pip
+
+- Run `pip install git+git://github.com/NaturalHistoryMuseum/ALICE`
+
+
 ## Note on licenses
 Both pyflow (https://github.com/pathak22/pyflow) and gco_python (https://github.com/amueller/gco_python; http://vision.csd.uwo.ca/code/) are included but have their own licenses. If making the repository public this needs to be accounted for.
