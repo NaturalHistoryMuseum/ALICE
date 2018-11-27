@@ -1,5 +1,4 @@
-from ALICE.models.viewsets import Specimen
-from ._models import PostLabel
+from ALICE.models.viewsets import Specimen, PostLabel
 
 
 def specimen_contrast_labels(specimen):

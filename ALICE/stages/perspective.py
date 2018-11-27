@@ -1,5 +1,6 @@
-from ALICE.models import Specimen, SpecimenQueue
+from ALICE.models import SpecimenQueue
 from ALICE.models.views import WarpedView
+from ALICE.models.viewsets import Specimen
 
 
 def specimen_warp(specimen):

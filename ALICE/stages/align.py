@@ -1,5 +1,5 @@
-from ALICE.models import Specimen, SpecimenQueue
-from ._models import AlignedLabel
+from ALICE.models import SpecimenQueue
+from ALICE.models.viewsets import AlignedLabel, Specimen
 
 
 def specimen_align_labels(specimen):

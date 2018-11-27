@@ -2,9 +2,9 @@ import numpy as np
 from pygco import cut_from_graph
 from sklearn.neighbors import NearestNeighbors
 
-from ALICE.models import MultipleTransformations, Specimen, View
-from ALICE.models.logger import logger
-from ALICE.models.viewsets import Label
+from ALICE.models.utils import MultipleTransformations, logger
+from ALICE.models.views import View
+from ALICE.models.viewsets import Label, Specimen
 from ._features import FeaturesSpecimen
 
 
@@ -93,7 +93,8 @@ class LabelSpecimen(Specimen):
         for iteration in range(max_iterations):
             unary = np.stack([model.residual(self.keypoints) for model in models],
                              axis=1)
-            labels = cut_from_graph(edges=edges, unary_cost=unary, pairwise_cost=pairwise)
+            labels = cut_from_graph(edges=edges, unary_cost=unary,
+                                    pairwise_cost=pairwise)
             for i, model in enumerate(models):
                 inliers = (labels == i)
                 if inliers.sum() >= minimum_support:

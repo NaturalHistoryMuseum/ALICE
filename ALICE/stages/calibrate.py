@@ -1,1 +1,1 @@
-from ALICE.models import Calibrator
+from ALICE.models.viewsets import Calibrator
