@@ -1,1 +1,2 @@
 git+https://github.com/pathak22/pyflow#egg=pyflow
+git+git://github.com/matterport/Mask_RCNN.git

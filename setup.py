@@ -19,6 +19,12 @@ setup(
     include_package_data=True,
     zip_safe=False,
     install_requires=[
+        'pillow',
+        'opencv-python',
+        'h5py',
+        'imgaug',
+        'keras',
+        'tensorflow',
         'pyflow',
         'pygco',
         'cached-property',
@@ -32,6 +38,11 @@ setup(
         'cython'
         ],
     dependency_links=[
-        "git+https://github.com/pathak22/pyflow#egg=pyflow",
+        'git+https://github.com/pathak22/pyflow#egg=pyflow',
+        'git+git://github.com/matterport/Mask_RCNN.git'
         ]
     )
+
+# need the requirements from
+# https://github.com/matterport/Mask_RCNN/blob/master/requirements.txt
+# (these are not included in its setup.py so if a dependency is missing check there)

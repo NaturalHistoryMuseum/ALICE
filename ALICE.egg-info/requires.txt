@@ -1,3 +1,9 @@
+pillow
+opencv-python
+h5py
+imgaug
+keras
+tensorflow
 pyflow
 pygco
 cached-property

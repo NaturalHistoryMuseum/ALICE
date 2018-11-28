@@ -5,8 +5,8 @@ import json
 import os
 import re
 
-from ALICE.models import Specimen
-from ALICE.models.logger import logger
+from .viewsets import Specimen
+from .utils import logger
 
 
 class SpecimenQueue(object):

@@ -2,13 +2,8 @@ import numpy as np
 import re
 from matplotlib import pyplot as plt
 from matplotlib.patches import Polygon
-from skimage import color, filters, measure, segmentation
-from skimage.filters import gaussian
-from skimage.measure import regionprops
 from skimage.transform import (AffineTransform, SimilarityTransform, estimate_transform,
                                rescale, warp)
-
-from ALICE.utils.image import improve_contrast
 
 
 class ViewPosition(object):
@@ -114,65 +109,6 @@ class ViewPosition(object):
         """
         return ViewPosition(self.id, self.coordinates * scale, self.scaled * scale)
 
-    def detect_regions(self, image):
-        """
-        Use thresholding and region detection to attempt to find a square
-        containing the specimen.
-        :param image: the image to process
-        :returns: an image cropped to a square (using the original height or width)
-
-        """
-        grey = color.rgb2gray(image)
-        h, w = grey.shape
-
-        threshold_value = filters.threshold_otsu(grey)
-        binary = grey < threshold_value
-        labelled = measure.label(binary)
-        regions = sorted(measure.regionprops(labelled), key=lambda x: -x.bbox_area)[:20]
-        centroids = np.array([region.centroid for region in regions])
-        avg_centroid = centroids.mean(axis=0)
-
-        mid_h, mid_w = avg_centroid
-        x1 = max(0, int(mid_w - (h / 2))) if w > h else 0
-        x2 = min(w, x1 + h) if w > h else w + 1
-        y1 = max(0, int(mid_h - (w / 2))) if w < h else 0
-        y2 = min(h, y1 + w) if w < h else h + 1
-        self._transform = None
-        return image.copy()[y1:y2, x1:x2]
-
-    def crop_to_labels(self, image, h=None, w=None):
-        """
-        Attempts to find labels in the image by looking for brighter/whiter areas,
-        then crops down to that area.
-        :param w: the original image width to scale down from
-        :param h: the original image height to scale down from
-        :param image: the image to crop
-        :return: a cropped image
-
-        """
-        if h is None:
-            h = image.shape[0]
-        if w is None:
-            w = image.shape[1]
-        crop_size = np.array([h, w]) * 0.7
-        img = improve_contrast(image.copy(), discard=5)
-        img = gaussian(img, multichannel=True)
-
-        labels = segmentation.slic(img, compactness=100, n_segments=400)
-        regions = sorted(regionprops(labels),
-                         key=lambda x: img[list(zip(*x.coords))].mean().tolist())[
-                  -2:]
-        centroid = np.array([r.centroid for r in regions]).mean(axis=0)
-        crop_y, crop_x = np.array([centroid - (crop_size / 2),
-                                   centroid + (crop_size / 2)]).T.astype(int)
-        crop_x -= crop_x.min() if crop_x.min() < 0 else 0
-        crop_x -= (crop_x.max() - image.shape[1]) if crop_x.max() > image.shape[1] else 0
-        crop_y -= crop_y.min() if crop_y.min() < 0 else 0
-        crop_y -= (crop_y.max() - image.shape[0]) if crop_y.max() > image.shape[0] else 0
-        self._transform = None
-        cropped = improve_contrast(image.copy()[slice(*crop_y), slice(*crop_x)], 1)
-        return cropped
-
     def apply_transform(self, image):
         """
         Apply the view transformation to the given image, warping it to
@@ -181,10 +117,7 @@ class ViewPosition(object):
         :returns: a warped image object
 
         """
-        h, w = image.shape[:2]
-        image = self.detect_regions(image)
-        #image = self.crop_to_labels(image, h, w)
-        #self.move_coords(np.array([image.shape[:2]]))
+        self.move_coords(np.array([image.shape[:2]]))
         height, width = image.shape[:2]
         box_image = np.array([[0, height], [0, 0], [width, 0], [width, height]])
         bounds = self.transform.inverse(box_image)

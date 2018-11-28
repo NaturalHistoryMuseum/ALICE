@@ -12,7 +12,7 @@ class FeaturesSpecimen(Specimen):
 
     def __init__(self, specimen_id, views):
         super(FeaturesSpecimen, self).__init__(specimen_id, views)
-        self.comparer = FeatureComparer.ensure_minimum(specimen_id, views)
+        self.comparer = FeatureComparer.ensure_minimum(specimen_id, views, minimum=50)
 
     @property
     def display(self):
