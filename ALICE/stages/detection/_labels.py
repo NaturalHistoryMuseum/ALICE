@@ -86,6 +86,7 @@ class LabelSpecimen(Specimen):
 
         """
         edges = np.stack(set(self.edges_nearest)).astype(np.int32)
+        edges2 = np.stack(set(self.nn)).astype(np.int32)
         models = [MultipleTransformations.initialise_model(self.keypoints) for _ in
                   range(k)]
         pairwise = 1 - np.eye(len(models), dtype=np.int32)
@@ -119,6 +120,19 @@ class LabelSpecimen(Specimen):
                     zip(distances.flatten(), indices.flatten())):
                 if index != i:
                     yield (*sorted((i, index)), int(distance))
+
+    @property
+    def nn(self):
+        points = self.keypoints.reshape(-1, len(self.views) * 2)
+        neighbors = NearestNeighbors(n_neighbors=20)
+        neighbors.fit(points)
+        for i in range(points.shape[0]):
+            distances, indices = neighbors.kneighbors(points[[i]])
+            paired = np.dstack((np.repeat([i], distances.size), indices, distances))
+            paired = paired[paired[..., 1] != i]
+            paired[..., :2].sort(axis=1)
+            for row in paired:
+                yield tuple(row.tolist())
 
     @staticmethod
     def _crop(points, border=0.5):
