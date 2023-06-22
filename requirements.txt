@@ -1,9 +1,8 @@
-numpy==1.14.3
-git+https://github.com/pathak22/pyflow.git
-pygco=0.0.16
-ipython==6.4.0
-matplotlib==2.2.2
-numba==0.38.0
-scikit-image==0.13.1
-pandas==0.23.0
-jupyter==1.0.0
+torch==2.0.1
+torchvision==0.15.2
+luigi==3.3.0
+detectron2 @ git+https://github.com/facebookresearch/detectron2.git@82a57ce0b70057685962b352535147d9a8118578
+matplotlib==3.7.1
+numpy==1.21.6
+python-dotenv==0.21.0
+opencv-python==4.7.0.72
