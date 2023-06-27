@@ -640,6 +640,7 @@ def adjust_alignment(
     percentile=15,
     min_contour_height=15,
     height_prop=30,
+    return_col=False,
 ):
 
     k = 0
@@ -697,8 +698,10 @@ def adjust_alignment(
             opt_angle = deepcopy(angle)
 
     rotated_img = imutils.rotate_bound(image, opt_angle)
-
-    return opt_angle, max_len, max_ind, all_lens, rotated_img
+    if return_col == True:
+        return imutils.rotate_bound(image_orig, opt_angle)
+    else:
+        return opt_angle, max_len, max_ind, all_lens, rotated_img
 
 
 # PIN-REMOVAL FUNCTIONS #

@@ -88,8 +88,15 @@ def transform_label(
         short_inds, long_inds, _, dists_dict = define_label_sides(corners_x, corners_y)
 
     # 4) Update corners of parallelogram:
-    corners_x_updated, corners_y_updated = reconfigure_corner(
-        short_inds, long_inds, dists_dict, corners_x, corners_y, method=reconfig_method
+    corners_x_updated, corners_y_updated = reconfigure_corner_global(
+        short_inds,
+        long_inds,
+        dists_dict,
+        corners_x,
+        corners_y,
+        method=reconfig_method,
+        original_mask=mask,
+        original_image=img_orig,
     )
     # If these new corners are significantly larger than the original corners, we
     # use the original corners instead. Check this with compare_corners function:
@@ -120,13 +127,15 @@ def transform_label(
         # If it's too small, repeat the process with an improved label:
         corners_x, corners_y = backup_corner_method(contours)
         short_inds, long_inds, _, dists_dict = define_label_sides(corners_x, corners_y)
-        corners_x_updated, corners_y_updated = reconfigure_corner(
+        corners_x_updated, corners_y_updated = reconfigure_corner_global(
             short_inds,
             long_inds,
             dists_dict,
             corners_x,
             corners_y,
             method=reconfig_method,
+            original_mask=mask,
+            original_image=img_orig,
         )
         img_warped, _ = perspective_transform(
             corners_x_updated,

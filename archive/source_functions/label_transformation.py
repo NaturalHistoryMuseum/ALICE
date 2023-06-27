@@ -165,13 +165,41 @@ def reconfigure_corner(
     return corners_x_updated, corners_y_updated
 
 
-def backup_corner_method(contours):
+def reconfigure_corner_global(
+    short_inds,
+    long_inds,
+    dists_dict,
+    corners_x,
+    corners_y,
+    method=0,
+    original_mask=None,
+    original_image=None,
+):
+    if method != "both":
+        corners_x_updated, corners_y_updated = reconfigure_corner(
+            short_inds, long_inds, dists_dict, corners_x, corners_y, method=method
+        )
+    else:
+        corners_1 = reconfigure_corner(
+            short_inds, long_inds, dists_dict, corners_x, corners_y, method=0
+        )
+        corners_2 = reconfigure_corner(
+            short_inds, long_inds, dists_dict, corners_x, corners_y, method=1
+        )
+        best_index, _ = compare_corners_with_mask(
+            corners_1, corners_2, original_mask, original_image
+        )
+        corners_x_updated, corners_y_updated = [corners_1, corners_2][best_index]
+    return corners_x_updated, corners_y_updated
+
+
+def backup_corner_method(contours, npoints=80, return_dict=False):
     # Aim: Back-up method of finding corners.
 
     # Input: contour around label mask.
     # Ouput: corners of label.
 
-    contour_x, contour_y = reparam(contours[0], contours[1], 80)
+    contour_x, contour_y = reparam(contours[0], contours[1], npoints)
 
     tst = np.zeros((len(contour_x), 1, 2), dtype="int32")
     tst[:, 0, 0] = np.int_(contour_y)
@@ -182,16 +210,22 @@ def backup_corner_method(contours):
 
     new_approx = deepcopy(approx)
     if len(approx) != 4:
+        inds = []
         a = np.argmin(approx[:, 0, 1])
-        b = np.argmax(approx[:, 0, 1])
-        c = np.argmin(approx[:, 0, 0])
-        d = np.argmax(approx[:, 0, 0])
+        inds.append(a)
+        b = [item for item in np.argsort(approx[:, 0, 1]) if item not in inds][-1]
+        inds.append(b)
+        c = [item for item in np.argsort(approx[:, 0, 0]) if item not in inds][0]
+        inds.append(c)
+        d = [item for item in np.argsort(approx[:, 0, 0]) if item not in inds][-1]
         new_approx = approx[np.sort([a, b, c, d]), :, :]
 
     corners_x = list(new_approx[:, 0, 1])
     corners_y = list(new_approx[:, 0, 0])
-
-    return corners_x, corners_y
+    if return_dict == False:
+        return corners_x, corners_y
+    else:
+        return corners_x, corners_y, new_approx, approx
 
 
 # --------------------------
@@ -275,6 +309,72 @@ def check_corners(corners_x2, corners_y2, short_inds, long_inds, min_angle=5):
     return any(i == True for i in [check1, check2])
 
 
+def compare_corners(
+    img_orig, corners_x, corners_y, corners_x_updated, corners_y_updated, min_bound=0.1
+):
+    # Aim: Compare corners_x/y with corners_x/y_updated in order to decide which to use
+    # for the succeeding transformation step. This is based on the percentage increase of
+    # the mask that the updated corners cover.
+
+    # Input: original corners. updated corners, and original image.
+    # Output: the chosen corners.
+
+    tst1 = np.zeros((1, 5, 2))
+    tst1[0, :4, 0] = corners_x
+    tst1[0, :4, 1] = corners_y
+    tst1[0, 4, 0] = corners_x[0]
+    tst1[0, 4, 1] = corners_y[0]
+
+    tst2 = np.zeros((1, 5, 2))
+    tst2[0, :4, 0] = corners_x_updated
+    tst2[0, :4, 1] = corners_y_updated
+    tst2[0, 4, 0] = corners_x_updated[0]
+    tst2[0, 4, 1] = corners_y_updated[0]
+
+    img_filled1 = deepcopy(img_orig)
+    img_filled1 = cv2.fillPoly(img_filled1, tst1.astype(np.int32), [255, 0, 0])
+    img_filled2 = deepcopy(img_orig)
+    img_filled2 = cv2.fillPoly(img_filled2, tst2.astype(np.int32), [0, 255, 0])
+
+    a = len(np.where(img_filled1 == [255, 0, 0])[0])
+    b = len(np.where(img_filled2 == [0, 255, 0])[0])
+
+    l = np.round((b - a) / b, 3)
+
+    if l > min_bound:
+        return corners_x_updated, corners_y_updated
+    else:
+        return corners_x, corners_y
+
+
+def compare_corners_with_mask(corners1, corners2, original_mask, img_orig):
+    # Aim: Compare corners_x/y with corners_x/y_updated in order to decide which to use
+    # for the succeeding transformation step. This is based on the percentage increase of
+    # the mask that the updated corners cover.
+
+    # Input: two sets of possible label corners, original mask and image.
+    # Output: the total intersection of the new corners and the original mask, and the index of
+    # the set of corners with largest intersection.
+
+    # Create filled images with corners:
+    a3 = np.array([np.array([corners1[0], corners1[1]]).T], dtype=np.int32)
+    I = deepcopy(img_orig)
+    img_filled1 = cv2.fillPoly(I, a3, [255, 0, 0])
+    a3 = np.array([np.array([corners2[0], corners2[1]]).T], dtype=np.int32)
+    I = deepcopy(img_orig)
+    img_filled2 = cv2.fillPoly(I, a3, [255, 0, 0])
+    # Get binary masks from filled images:
+    mask1 = np.full(np.shape(original_mask), False)
+    mask1[np.where(img_filled1 == [255, 0, 0])[:2]] = True
+    mask2 = np.full(np.shape(original_mask), False)
+    mask2[np.where(img_filled2 == [255, 0, 0])[:2]] = True
+    # Compute intersections:
+    I1 = len(np.where((original_mask == True) & (mask1 == True))[0])
+    I2 = len(np.where((original_mask == True) & (mask2 == True))[0])
+
+    return np.argmax([I1, I2]), [I1, I2]
+
+
 # --------------------------
 # Perspective Transformation
 # --------------------------
@@ -290,6 +390,8 @@ def perspective_transform(
     box_epsilon=1.1,
     fixed_dim=False,
     dimension=(0, 0),
+    return_box=False,
+    corner_index_method=1,
 ):
     # Aim: apply a perspective transformation to warp the label into a 2d viewpoint.
 
@@ -319,26 +421,57 @@ def perspective_transform(
     ########################
 
     # Match corners of desired box with current box:
-    u, v = [short_inds[i][0] for i in range(0, 2)]
-    p = np.argmin([corners_x_updated[u], corners_x_updated[v]])
-    u, v = short_inds[p]
-
     corner_inds = {}
 
-    i, j = np.argsort([corners_y_updated[u], corners_y_updated[v]])
-    k = [u, v][i]
-    corner_inds["bot_left"] = [corners_x_updated[k], corners_y_updated[k]]
-    k = [u, v][j]
-    corner_inds["top_left"] = [corners_x_updated[k], corners_y_updated[k]]
+    if corner_index_method == 0:
+        u, v = [short_inds[i][0] for i in range(0, 2)]
+        p = np.argmin([corners_x_updated[u], corners_x_updated[v]])
+        u, v = short_inds[p]
 
-    p = (p + 1) % 2
-    u, v = short_inds[p]
+        i, j = np.argsort([corners_y_updated[u], corners_y_updated[v]])
+        k = [u, v][i]
+        corner_inds["bot_left"] = [corners_x_updated[k], corners_y_updated[k]]
+        k = [u, v][j]
+        corner_inds["top_left"] = [corners_x_updated[k], corners_y_updated[k]]
 
-    i, j = np.argsort([corners_y_updated[u], corners_y_updated[v]])
-    k = [u, v][i]
-    corner_inds["bot_right"] = [corners_x_updated[k], corners_y_updated[k]]
-    k = [u, v][j]
-    corner_inds["top_right"] = [corners_x_updated[k], corners_y_updated[k]]
+        p = (p + 1) % 2
+        u, v = short_inds[p]
+
+        i, j = np.argsort([corners_y_updated[u], corners_y_updated[v]])
+        k = [u, v][i]
+        corner_inds["bot_right"] = [corners_x_updated[k], corners_y_updated[k]]
+        k = [u, v][j]
+        corner_inds["top_right"] = [corners_x_updated[k], corners_y_updated[k]]
+    elif corner_index_method == 1:
+        b = np.argsort(
+            [
+                np.average(np.array(corners_y_updated)[short_inds[i]])
+                for i in range(0, 2)
+            ]
+        )
+        c = np.argsort(np.array(corners_x_updated)[short_inds[b[0]]])
+        top_left = short_inds[b[0]][c[0]]
+        bot_left = short_inds[b[0]][c[1]]
+        d = np.argsort(np.array(corners_x_updated)[short_inds[b[1]]])
+        top_right = short_inds[b[1]][d[0]]
+        bot_right = short_inds[b[1]][d[1]]
+
+        corner_inds["top_left"] = [
+            corners_x_updated[top_left],
+            corners_y_updated[top_left],
+        ]
+        corner_inds["bot_left"] = [
+            corners_x_updated[bot_left],
+            corners_y_updated[bot_left],
+        ]
+        corner_inds["top_right"] = [
+            corners_x_updated[top_right],
+            corners_y_updated[top_right],
+        ]
+        corner_inds["bot_right"] = [
+            corners_x_updated[bot_right],
+            corners_y_updated[bot_right],
+        ]
 
     order = ["bot_left", "top_left", "top_right", "bot_right"]
     pts1 = []
@@ -382,4 +515,7 @@ def perspective_transform(
 
     img_warped = cv2.warpPerspective(img_s, M, dim)
 
-    return img_warped, img_s
+    if return_box == True:
+        return img_warped, img_s, pts1, pts2
+    else:
+        return img_warped, img_s
