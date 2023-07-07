@@ -80,27 +80,28 @@ def max_tesseract_osd_count(image, values=np.int_(np.linspace(3, 10, 8))):
 
     try:
         rotation = np.int_(re.findall("\d+", osd)[1:3])
+        k1 = re.search("Orientation confidence: ", osd).span()[1]
+        k2 = re.search("Script", osd).span()[0]
+        prct = float(osd[k1 : k2 - 1])
+
+        if (rotation[0] == 180) and (prct > 0.1):
+            image = imutils.rotate_bound(image, rotation[1])
+            img_bin = imutils.rotate_bound(img_bin, rotation[1])
     except:
-        rotation = [0]
-
-    k1 = re.search("Orientation confidence: ", osd).span()[1]
-    k2 = re.search("Script", osd).span()[0]
-    prct = float(osd[k1 : k2 - 1])
-
-    if (rotation[0] == 180) and (prct > 0.1):
-        image = imutils.rotate_bound(image, rotation[1])
-        img_bin = imutils.rotate_bound(img_bin, rotation[1])
+        pass
 
     return max_total, max_, image, img_bin
 
 
-def select_template(all_transformed_images):
+def select_template_oldMethod(all_transformed_images):
     # Aim: select a template image for the alignment stage.
 
     # Input: list of images (ALICE images from all angles).
     # Output: a template image, and the correctly orientated list of images.
 
     """
+    OLD METHOD!
+
     Note that the correctly orientated list of images could be the same as the original list
     if no correction was needed (using max_tesseract_osd_count)
     """
@@ -116,6 +117,45 @@ def select_template(all_transformed_images):
         all_imgs.append(image)
 
     inds = np.where(np.array(total_max_vals) == max(total_max_vals))[0]
+    k = inds[np.argmin(abs(np.array(angles)[inds]))]
+
+    template_label = all_imgs[k]
+
+    return template_label, all_imgs
+
+
+def select_template(all_transformed_images, min_letters=3):
+    # Aim: select a template image for the alignment stage.
+
+    # Input: list of images (ALICE images from all angles).
+    # Output: a template image, and the correctly orientated list of images.
+
+    """
+    Note 1: that the correctly orientated list of images could be the same as the original list
+    if no correction was needed (using max_tesseract_osd_count)
+    Note 2: this is an updated version of the original select_tempalte. In this version, the
+    template chosen is based on the image with the most letters found using basic OCR.
+    """
+
+    angles = []
+    all_imgs = []
+    total_letters_found = []
+    for img in all_transformed_images:
+        _, _, image, img_bin = max_tesseract_osd_count(img)
+
+        ocr_results = pytesseract.image_to_string(
+            img_bin, config="--psm 11 script=Latin"
+        )
+
+        total_letters_found.append(len(ocr_results))
+        theta = adjust_alignment(image, np.linspace(-10, 10, 21))[0]
+        angles.append(theta)
+        all_imgs.append(image)
+
+    letters_lower_bound = np.sort(total_letters_found)[-2]
+    if letters_lower_bound <= min_letters:
+        letters_lower_bound = np.max(total_letters_found)
+    inds = np.where(np.array(total_letters_found) >= letters_lower_bound)[0]
     k = inds[np.argmin(abs(np.array(angles)[inds]))]
 
     template_label = all_imgs[k]
