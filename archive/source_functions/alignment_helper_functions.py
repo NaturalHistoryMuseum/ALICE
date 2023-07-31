@@ -100,8 +100,10 @@ def segment_label(mask, img):
 def find_label_contour_boundaries(mask):
     # Finds the contour on an image that describes the mask's outline.
     contours = measure.find_contours(mask, 0.8)
-    x = contours[0][:, 1]
-    y = contours[0][:, 0]
+    total_contours = len(contours)
+    k = np.argmax([len(contours[i][:, 0]) for i in range(total_contours)])
+    x = contours[k][:, 1]
+    y = contours[k][:, 0]
 
     mnx = min(x)
     mxx = max(x)
