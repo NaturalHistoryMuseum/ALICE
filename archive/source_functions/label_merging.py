@@ -163,6 +163,88 @@ def select_template(all_transformed_images, min_letters=3):
     return template_label, all_imgs
 
 
+# --------------------------------
+# Orientation Prediction Functions
+# --------------------------------
+
+
+def tesseract_orientation_with_binarization_thresholding(
+    image, threshold_values=[30, 40, 50, 60]
+):
+    rotation_confidence_ = -1
+    rotation_ = 0
+    best_binarized_image = deepcopy(image)
+    for thresh in threshold_values:
+        bI = bin_image(image, bound_percentile=thresh)
+        try:
+            rotation, rotation_confidence = get_rotation_basic(bI)
+            if rotation_confidence > rotation_confidence_:
+                rotation_confidence_ = deepcopy(rotation_confidence)
+                rotation_ = deepcopy(rotation)
+                best_binarized_image = deepcopy(bI)
+        except:
+            pass
+
+    return rotation_[0], rotation_[1], rotation_confidence_, best_binarized_image
+
+
+def get_rotation_basic(image, values=np.int_(np.linspace(3, 10, 8))):
+
+    osd_, _ = get_osd(image, values)
+    rotation_confidence = get_osd_confidence(osd_)
+    rotation = np.int_(re.findall("\d+", osd_)[1:3])
+
+    return rotation, rotation_confidence
+
+
+def get_osd(image, min_char_values):
+    max_total = min(min_char_values)
+    osd = "N/A"
+    for j in min_char_values:
+        try:
+            osd = pytesseract.image_to_osd(
+                image,
+                config="--psm 0 -c min_characters_to_try=" + str(j) + " script=Latin",
+            )
+            max_total = j
+        except:
+            pass
+    return osd, max_total
+
+
+def get_osd_confidence(osd):
+    k1 = re.search("Orientation confidence: ", osd).span()[1]
+    k2 = re.search("\nScript", osd).span()[0]
+    rot = osd[k1:k2]
+    return float(rot)
+
+
+def max_ocr_length_orientation(
+    image, threshold_values=[30, 40, 50, 60], angles=[0, 90, 180, 270]
+):
+    ocr_longest = ""
+    best_angle = -10
+    for angle in angles:
+        I = imutils.rotate_bound(image, angle)
+        ocr_ = ""
+        for thresh in threshold_values:
+            try:
+                bI = bin_image(I, bound_percentile=thresh)
+                ocr_results = pytesseract.image_to_string(
+                    bI, config="--psm 11 script=Latin"
+                )
+                ocr_res = " ".join(re.findall("\w+", ocr_results))
+            except:
+                ocr_res = ""
+            if len(ocr_res) > len(ocr_):
+                ocr_ = deepcopy(ocr_res)
+        if len(ocr_) > len(ocr_longest):
+            ocr_longest = deepcopy(ocr_)
+            best_angle = deepcopy(angle)
+
+    return best_angle
+
+
 # -------------------
 # Alignment Functions
 # -------------------
@@ -390,3 +472,144 @@ def check_ocr(img, backup_bound_percentile=60):
         ocr_res = " ".join(re.findall("\w+", ocr_results))
 
     return ocr_res
+
+
+#################################################################################
+
+# -----------------------
+# NEW ALIGNMENT FUNCTIONS
+# -----------------------
+
+"""
+Note that these are new functions made for label alignment (to a template). Comments and cleaning will be done soon. -- ASJ 08/08/
+"""
+
+
+def align_warped_label_to_template(
+    image, template, matches_bound=0.9, max_no_matches=1000
+):
+    # Aim: align an image with a template.
+
+    # Input: image / template.
+    # Ouput: aligned image.
+
+    img1_color = deepcopy(image)  # Image to be aligned.
+    img2_color = deepcopy(template)  # Reference image.
+
+    # Convert to grayscale.
+    img1 = cv2.cvtColor(img1_color, cv2.COLOR_BGR2GRAY)
+    img2 = cv2.cvtColor(img2_color, cv2.COLOR_BGR2GRAY)
+    height, width = img2.shape
+
+    # Create ORB detector with 5000 features.
+    orb_detector = cv2.ORB_create(5000)
+
+    # Find keypoints and descriptors.
+    # The first arg is the image, second arg is the mask
+    #  (which is not required in this case).
+    kp1, d1 = orb_detector.detectAndCompute(img1, None)
+    kp2, d2 = orb_detector.detectAndCompute(img2, None)
+
+    # Match features between the two images.
+    # We create a Brute Force matcher with
+    # Hamming distance as measurement mode.
+    matcher = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
+
+    # Match the two sets of descriptors.
+    matches = matcher.match(d1, d2)
+
+    # Sort matches on the basis of their Hamming distance.
+    dists = [m.distance for m in matches]
+    lst = [matches[i] for i in np.argsort(dists)]
+    matches = tuple(lst)
+
+    # Take the top 90 % matches forward.
+    matches = matches[: int(len(matches) * matches_bound)]
+
+    # Filter matches (ASJ edit):
+
+    lines, new_index = filter_matches_new(matches, kp1, kp2, img1)
+
+    lines_filtered = np.array(lines)[new_index]
+
+    matches = tuple([m for i, m in enumerate(matches) if i in new_index])
+
+    no_of_matches = len(matches)
+
+    if no_of_matches > max_no_matches:
+        matches = matches[:max_no_matches]
+        no_of_matches = len(matches)
+        lines_filtered = lines_filtered[:max_no_matches]
+
+    # Define empty matrices of shape no_of_matches * 2.
+    p1 = np.zeros((no_of_matches, 2))
+    p2 = np.zeros((no_of_matches, 2))
+
+    for i in range(len(matches)):
+        p1[i, :] = kp1[matches[i].queryIdx].pt
+        p2[i, :] = kp2[matches[i].trainIdx].pt
+
+    # Find the homography matrix.
+    homography, mask = cv2.findHomography(p1, p2, cv2.RANSAC)
+
+    # Use this matrix to transform the
+    # colored image wrt the reference image.
+    transformed_img = cv2.warpPerspective(img1_color, homography, (width, height))
+
+    return transformed_img, lines, lines_filtered, homography
+
+
+def filter_matches_new(matches, kp1, kp2, template_image):
+
+    lines = get_matches(matches, kp1, kp2, template_image)
+
+    gradients = []
+    gradients_index = []
+    for i, l in enumerate(lines):
+        grad = get_grad(l)
+        gradients.append(grad)
+        gradients_index.append(i)
+    try:
+        LB, UB = outlier_bounds(gradients)
+    except:
+        LB, UB = [0, 0]
+
+    pos_gradients_filtered_index = []
+    neg_gradients_filtered_index = []
+
+    for i, g in enumerate(gradients):
+        if LB <= g <= UB:
+            if g >= 0:
+                pos_gradients_filtered_index.append(gradients_index[i])
+            else:
+                neg_gradients_filtered_index.append(gradients_index[i])
+
+    all_new_index = [pos_gradients_filtered_index, neg_gradients_filtered_index]
+    k = np.argmax([len(I) for I in all_new_index])
+    gradients_filtered_index = all_new_index[k]
+
+    return lines, gradients_filtered_index
+
+
+def get_matches(matches, kp1, kp2, img):
+
+    lines = []
+    for v in range(len(matches)):
+        i1, i2 = [matches[v].queryIdx, matches[v].trainIdx]
+        x1 = kp1[i1].pt[0]
+        y1 = kp1[i1].pt[1]
+        x2 = kp2[i2].pt[0] + np.shape(img)[1]
+        y2 = kp2[i2].pt[1]
+        lines.append([[x1, x2], [y1, y2]])
+    return lines
+
+
+def get_grad(l):
+    return np.round((l[1][1] - l[1][0]) / (l[0][1] - l[0][0]), 6)
+
+
+def outlier_bounds(values, alpha=1.5):
+    IQR_ = alpha * (np.percentile(values, 75) - np.percentile(values, 25))
+    UB = np.percentile(values, 75) + IQR_
+    LB = np.percentile(values, 25) - IQR_
+    return LB, UB

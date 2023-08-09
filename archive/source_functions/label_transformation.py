@@ -57,6 +57,21 @@ def find_corners(
     return mask, img_orig, corners_x, corners_y, contours
 
 
+def find_label_corners(mask, contours):
+    """This is a cut version of the above function find_corners."""
+    # Aim: Find four corners of label.
+
+    # Input: resulting mask from CNN instance segmentation.
+    # Output: x and y coordinates of the four corners.
+
+    # 2) Find Direction
+    new_lines, _, _, contours = find_direction(mask, contours=contours)
+    # 3) Find Corners
+    corners_x, corners_y = find_label_corners_v2(new_lines, contours)
+
+    return corners_x, corners_y
+
+
 def define_label_sides(corners_x, corners_y):
     # Aim: Locate the rectangle's (label's) "short side" and "long side".
 
@@ -287,7 +302,7 @@ def intersection_check(corners_x2, corners_y2, long_inds):
     return intersect(A1, B1, C1, D1)
 
 
-def check_corners(corners_x2, corners_y2, short_inds, long_inds, min_angle=5):
+def check_corners(corners_x2, corners_y2, short_inds, long_inds, min_angle=10):
     # Aim: Check appropriateness of label corners.
 
     # Input: corners of labels and index of short / long sides.

@@ -118,7 +118,7 @@ def make_matches(midpoints, temp_midpoints):
     return matches_ind
 
 
-def make_matches2(matches_to_be_found, template_to_match):
+def make_matches_v2(matches_to_be_found, template_to_match):
     iterations = list(
         itertools.permutations(matches_to_be_found, len(template_to_match))
     )
@@ -197,7 +197,7 @@ def get_matched_masks_and_images(
         if match_method == 1:
             matches = make_matches(yv, yvals_temp)
         else:
-            matches = make_matches2(yv, yvals_temp)
+            matches = make_matches_v2(yv, yvals_temp)
 
         msk_ = [new_masks_[i][p] for p in matches.values()]
 
