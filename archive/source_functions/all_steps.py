@@ -18,13 +18,16 @@ STEPS:
 9) Merge labels into one. 
 10) Classify merged label as good or bad.
 
+For one function that includes all the following steps, refer to the file ALICE_main_function.py.
+
 """
 
 ###########################################################################
+###########################################################################
 
-#########
-# IMPORTS
-#########
+###########
+# IMPORTS #
+###########
 
 """
 ----------------------------
@@ -38,7 +41,6 @@ from detectron2.engine import DefaultPredictor
 from detectron2.config import get_cfg
 from detectron2.utils.logger import setup_logger
 import os
-import cv2
 
 """
 --------------------
@@ -117,9 +119,9 @@ from label_merging import merge_label
 ###########################################################################
 ###########################################################################
 
-############
-# FINAL CODE
-############
+##############
+# FINAL CODE #
+##############
 
 
 """
@@ -156,10 +158,9 @@ segmentation_predictor = DefaultPredictor(cfg)
 ############
 
 
-def segment_labels_from_image_path(image_path):
-    # Input: image path
-    # Output: image (np.array), masks (np.array)
-    image = cv2.imread(image_path)
+def segment_labels_from_image_path(image):
+    # Input: image
+    # Output: masks (np.array)
     outputs = segmentation_predictor(image)
     label_masks = outputs["instances"].to("cpu").pred_masks
     return label_masks, image
@@ -339,7 +340,7 @@ MINIMUM_LABEL_SIZE = 20  # minimum size of length or width in pixels.
 
 
 def warp_label(
-    corner_results, image, original_mask, mininimum_label_size=MINIMUM_LABEL_SIZE
+    corner_results, image, original_mask, minimum_label_size=MINIMUM_LABEL_SIZE
 ):
     # Input: Corners of labels (results from define_box_around_label), original image / mask.
     # Output: Four warped labels (after perspective transformation).
@@ -361,7 +362,7 @@ def warp_label(
         long_side_index,
     )
 
-    if any(np.array(np.shape(warped_label)[:2]) < mininimum_label_size):
+    if any(np.array(np.shape(warped_label)[:2]) < minimum_label_size):
         corner_results = define_box_around_label(
             original_mask, image, corner_finding_method=1, combine_label_masks=False
         )
@@ -494,7 +495,7 @@ STEP 8 -- DETECT & EXCLUDE BAD LABELS
 ####################
 # Variables to edit:
 ####################
-SEGMENTATION_THRESHOLD_VALUE = 0.7
+CLASSIFICATION_THRESHOLD_VALUE = 0.7
 PATH_TO_BAD_LABEL_DETECTION_WEIGHTS = (
     "/content/drive/My Drive/ALICE/bad_label_detection/model.pth"
 )
@@ -509,7 +510,7 @@ cfg.MODEL.ROI_HEADS.NUM_CLASSES = 2
 
 # Predictor
 cfg.MODEL.WEIGHTS = os.path.join(cfg.OUTPUT_DIR, PATH_TO_BAD_LABEL_DETECTION_WEIGHTS)
-cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = SEGMENTATION_THRESHOLD_VALUE
+cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = CLASSIFICATION_THRESHOLD_VALUE
 good_or_bad_label_predictor = DefaultPredictor(cfg)
 
 ###########################################################################
@@ -586,3 +587,11 @@ def merge_aligned_labels(filtered_labels):
     except:
         merged_label = merge_label(filtered_labels, method=1)
     return merged_label
+
+
+###########################################################################
+###########################################################################
+
+##############
+# FINAL CODE #
+##############
