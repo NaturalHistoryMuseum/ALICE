@@ -20,6 +20,108 @@ STEPS:
 
 """
 
+###########################################################################
+
+#########
+# IMPORTS
+#########
+
+"""
+----------------------------
+IMPORTS FROM STEP 1 / STEP 8
+----------------------------
+"""
+
+import detectron2
+from detectron2 import model_zoo
+from detectron2.engine import DefaultPredictor
+from detectron2.config import get_cfg
+from detectron2.utils.logger import setup_logger
+import os
+import cv2
+
+"""
+--------------------
+IMPORTS FROM STEP 2
+--------------------
+"""
+
+from mask_matching_functions import review_overlaps, remove_small_masks, make_matches_v2
+import numpy as np
+
+"""
+--------------------
+IMPORTS FROM STEP 3
+--------------------
+"""
+
+from label_transformation import (
+    find_label_corners,
+    backup_corner_method,
+    define_label_sides,
+    combine_masks,
+    compare_corners,
+    reconfigure_corner_global,
+    check_corners,
+)
+from skimage import measure
+
+"""
+--------------------
+IMPORTS FROM STEP 4
+--------------------
+"""
+
+from label_transformation import perspective_transform
+
+"""
+--------------------
+IMPORTS FROM STEP 5
+--------------------
+"""
+
+from alignment_helper_functions import adjust_alignment
+import imutils
+from copy import deepcopy
+from label_merging import (
+    max_ocr_length_orientation,
+    tesseract_orientation_with_binarization_thresholding,
+)
+
+"""
+--------------------
+IMPORTS FROM STEP 6
+--------------------
+"""
+
+import pytesseract
+import re
+
+"""
+--------------------
+IMPORTS FROM STEP 7
+--------------------
+"""
+
+from label_merging import align_warped_label_to_template
+
+"""
+--------------------
+IMPORTS FROM STEP 9
+--------------------
+"""
+
+from label_merging import merge_label
+
+
+###########################################################################
+###########################################################################
+
+############
+# FINAL CODE
+############
+
+
 """
 ----------------------
 STEP 1 -- SEGMENTATION
@@ -34,15 +136,6 @@ PATH_TO_MODEL = "COCO-Detection/faster_rcnn_X_101_32x8d_FPN_3x.yaml"
 PATH_TO_WEIGHTS = "/content/drive/My Drive/ALICE/model_new_2000it_bin.pth"
 
 ###########################################################################
-
-# Imports
-import detectron2
-from detectron2 import model_zoo
-from detectron2.engine import DefaultPredictor
-from detectron2.config import get_cfg
-from detectron2.utils.logger import setup_logger
-import os
-import cv2
 
 setup_logger()
 
@@ -82,12 +175,6 @@ STEP 2 -- LABEL MASK GROUPING
 # Variables to edit:
 ####################
 MAX_NUMBER_OF_LABELS = 6  # Maximum number of labels to look at per image.
-
-###########################################################################
-
-# Imports
-from mask_matching_functions import review_overlaps, remove_small_masks, make_matches_v2
-import numpy as np
 
 ###########################################################################
 
@@ -163,20 +250,6 @@ CORNER_FINDING_METHOD = 0
 
 ###########################################################################
 
-# Imports:
-from label_transformation import (
-    find_label_corners,
-    backup_corner_method,
-    define_label_sides,
-    combine_masks,
-    compare_corners,
-    reconfigure_corner_global,
-    check_corners,
-)
-from skimage import measure
-
-###########################################################################
-
 ############
 # Functions
 ############
@@ -188,6 +261,9 @@ def define_box_around_label(
     corner_finding_method=CORNER_FINDING_METHOD,
     combine_label_masks=True,
 ):
+    # Input: label masks and images.
+    # Output: corners of label, distances between corners.
+
     # 1) Find contour around mask:
     contours_around_mask = measure.find_contours(label_mask, 0.8)
     # 2) Check how many contours are found in mask:
@@ -257,11 +333,6 @@ MINIMUM_LABEL_SIZE = 20  # minimum size of length or width in pixels.
 
 ###########################################################################
 
-# Imports:
-from label_transformation import perspective_transform
-
-###########################################################################
-
 ############
 # Functions
 ############
@@ -270,6 +341,8 @@ from label_transformation import perspective_transform
 def warp_label(
     corner_results, image, original_mask, mininimum_label_size=MINIMUM_LABEL_SIZE
 ):
+    # Input: Corners of labels (results from define_box_around_label), original image / mask.
+    # Output: Four warped labels (after perspective transformation).
 
     (
         corners_x_updated,
@@ -317,23 +390,15 @@ STEP 5 -- MINOR ADJUSTMENTS & ROTATIONS
 ---------------------------------------
 """
 
-# Imports:
-from alignment_helper_functions import adjust_alignment
-import imutils
-from copy import deepcopy
-from label_merging import (
-    max_ocr_length_orientation,
-    tesseract_orientation_with_binarization_thresholding,
-)
-
-###########################################################################
-
 ############
 # Functions
 ############
 
 
 def adjust_and_rotate_warped_label(warped_label):
+    # Input: warped label.
+    # Output: Optimally rotated label.
+
     # 1) Minor adjustment in label angle:
     optimal_angle = adjust_alignment(warped_label, np.linspace(-10, 10, 21))[0]
     adjusted_label = imutils.rotate_bound(warped_label, optimal_angle)
@@ -365,18 +430,15 @@ STEP 6 -- SELECT TEMPLATE WARPED LABEL
 --------------------------------------
 """
 
-# Imports:
-import pytesseract
-import re
-
-###########################################################################
-
 ############
 # Functions
 ############
 
 
 def select_template_warped_label(all_rotated_warped_labels, all_binarized_labels):
+    # Input: rotated_labels, binarized labels
+    # Output: template based on one of the four rotated_labels.
+
     longest_label_text_length = 0
     template_warped_label = all_rotated_warped_labels[0]
     for ind, rotated_label in enumerate(all_rotated_warped_labels):
@@ -397,22 +459,130 @@ STEP 7 -- ALIGN LABELS TO TEMPLATE
 ----------------------------------
 """
 
-# Imports:
-from label_merging import align_warped_label_to_template
-
 ############
 # Functions
 ############
 
 
 def align_warped_labels(all_rotated_warped_labels, template_warped_label):
+    # Input: all rotated labels, template_label
+    # Ouput: all labels aligned to template.
     aligned_labels = []
     for warped_label in all_rotated_warped_labels:
-        try:
-            aligned_label = align_warped_label_to_template(
-                warped_label, template_warped_label
-            )[0]
-            aligned_labels.append(aligned_label)
-        except:
-            pass
+        if warped_label == template_warped_label:
+            aligned_labels.append(warped_label)
+        else:
+            try:
+                aligned_label = align_warped_label_to_template(
+                    warped_label, template_warped_label
+                )[0]
+                aligned_labels.append(aligned_label)
+            except:
+                pass
+
+    if len(aligned_labels) == 0:
+        aligned_labels = deepcopy(all_rotated_warped_labels)
     return aligned_labels
+
+
+"""
+-------------------------------------
+STEP 8 -- DETECT & EXCLUDE BAD LABELS
+-------------------------------------
+"""
+
+####################
+# Variables to edit:
+####################
+SEGMENTATION_THRESHOLD_VALUE = 0.7
+PATH_TO_BAD_LABEL_DETECTION_WEIGHTS = (
+    "/content/drive/My Drive/ALICE/bad_label_detection/model.pth"
+)
+
+###########################################################################
+
+# Model setup
+del cfg
+cfg = get_cfg()
+cfg.merge_from_file(model_zoo.get_config_file(PATH_TO_MODEL))
+cfg.MODEL.ROI_HEADS.NUM_CLASSES = 2
+
+# Predictor
+cfg.MODEL.WEIGHTS = os.path.join(cfg.OUTPUT_DIR, PATH_TO_BAD_LABEL_DETECTION_WEIGHTS)
+cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = SEGMENTATION_THRESHOLD_VALUE
+good_or_bad_label_predictor = DefaultPredictor(cfg)
+
+###########################################################################
+
+############
+# Functions
+############
+
+
+def is_label_good(label):
+    # Input: label
+    # Output: classification of whether label is good or bad (np.bool).
+    classification = good_or_bad_label_predictor(label)
+    good_or_bad = classification["instances"].pred_classes[0].item()
+    return np.bool(good_or_bad)
+
+
+def exclude_bad_labels_with_template_pixel_difference(
+    aligned_labels, template_warped_label
+):
+    # Input: aligned labels, template label.
+    # Output: filtered labels (that are not too different from template).
+    sum_of_pixel_differences_all = [
+        np.sum(abs(template_warped_label - label)) for label in aligned_labels
+    ]
+    sum_of_pixel_differences = [
+        diffsum for diffsum in sum_of_pixel_differences_all if diffsum > 0
+    ]
+    upper_bound_pixel_diffsum = np.median(sum_of_pixel_differences) + (
+        np.percentile(sum_of_pixel_differences, 75)
+        - np.percentile(sum_of_pixel_differences, 25)
+    )
+    filtered_aligned_labels = []
+    for ind, label in enumerate(aligned_labels):
+        if sum_of_pixel_differences_all[ind] < upper_bound_pixel_diffsum:
+            filtered_aligned_labels.append(label)
+    return filtered_aligned_labels
+
+
+def find_all_good_labels(aligned_labels, template_warped_label):
+    # Input: aligned labels
+    # Output: good labels.
+    try:
+        filtered_aligned_labels = exclude_bad_labels_with_template_pixel_difference(
+            aligned_labels, template_warped_label
+        )
+    except:
+        filtered_aligned_labels = deepcopy(aligned_labels)
+    filtered_labels = []
+    for label in filtered_aligned_labels:
+        if is_label_good(label) is True:
+            filtered_labels.append(label)
+    if len(filtered_labels) == 0:
+        filtered_labels = deepcopy(aligned_labels)
+    return filtered_labels
+
+
+"""
+----------------------
+STEP 9 -- MERGE LABELS
+----------------------
+"""
+
+############
+# Functions
+############
+
+
+def merge_aligned_labels(filtered_labels):
+    # Input: all filtered labels.
+    # Output: merged label.
+    try:
+        merged_label = merge_label(filtered_labels, method=0)
+    except:
+        merged_label = merge_label(filtered_labels, method=1)
+    return merged_label
