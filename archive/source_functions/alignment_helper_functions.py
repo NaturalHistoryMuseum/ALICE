@@ -301,11 +301,11 @@ def line_of_best_fit(xcurve, ycurve, x, y, t_, minmax="min"):
     return X, Y, y_line
 
 
-def find_direction(mask, angleTotal=37, angleMax=180, epsilon=15):
+def find_direction(mask, angleTotal=37, angleMax=180, epsilon=15, contours=None):
     # Find label direction.
     # 1) Find mask contour:
-    contours = find_label_contour_boundaries(mask)
-    contours = contours[0]
+    if contours is None:
+        contours = measure.find_contours(mask, 0.8)
     # 2) Reparametrize contour:
     contour_x, contour_y = reparam(contours[0][:, 1], contours[0][:, 0], 80)
     # 3) Find furthest two points on label contour:

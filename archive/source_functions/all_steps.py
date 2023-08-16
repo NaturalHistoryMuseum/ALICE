@@ -272,11 +272,16 @@ def define_box_around_label(
     # If multiple, then we can combine masks:
     if (len(contours_around_mask) > 1) and (combine_label_masks is True):
         label_mask = combine_masks(label_mask, contours_around_mask)
+        contours_around_mask = measure.find_contours(label_mask, 0.8)
     # 3) Find corners of label:
     if corner_finding_method == 0:
         corners_x, corners_y = find_label_corners(label_mask, contours_around_mask)
     else:
-        corners_x, corners_y = backup_corner_method(contours_around_mask)
+        contours_reshaped = [
+            contours_around_mask[0][:, 1],
+            contours_around_mask[0][:, 0],
+        ]
+        corners_x, corners_y = backup_corner_method(contours_reshaped)
     # 4) Define the long and short sides of label:
     short_side_index, long_side_index, _, distance_between_corners = define_label_sides(
         corners_x, corners_y
@@ -287,13 +292,20 @@ def define_box_around_label(
         cc = check_corners(corners_x, corners_y, short_side_index, long_side_index)
         # If corners don't fit the criteria, redo the corner computation:
         if cc == True:
-            corners_x, corners_y = backup_corner_method(contours_around_mask)
-            (
-                short_side_index,
-                long_side_index,
-                _,
-                distance_between_corners,
-            ) = define_label_sides(corners_x, corners_y)
+            try:
+                contours_reshaped = [
+                    contours_around_mask[0][:, 1],
+                    contours_around_mask[0][:, 0],
+                ]
+                corners_x, corners_y = backup_corner_method(contours_reshaped)
+                (
+                    short_side_index,
+                    long_side_index,
+                    _,
+                    distance_between_corners,
+                ) = define_label_sides(corners_x, corners_y)
+            except:
+                pass
 
     # 6) Edit corners:
     corners_x_updated, corners_y_updated = reconfigure_corner_global(
