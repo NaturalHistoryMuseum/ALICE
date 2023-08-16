@@ -134,8 +134,8 @@ STEP 1 -- SEGMENTATION
 # Variables to edit:
 ####################
 SEGMENTATION_THRESHOLD_VALUE = 0.7
-PATH_TO_MODEL = "COCO-Detection/faster_rcnn_X_101_32x8d_FPN_3x.yaml"
-PATH_TO_WEIGHTS = "/content/drive/My Drive/ALICE/model_new_2000it_bin.pth"
+PATH_TO_MODEL = "COCO-InstanceSegmentation/mask_rcnn_R_50_FPN_3x.yaml"
+PATH_TO_WEIGHTS = "/content/drive/My Drive/ALICE/model_final.pth"
 
 ###########################################################################
 
@@ -144,7 +144,7 @@ setup_logger()
 # Model setup
 cfg = get_cfg()
 cfg.merge_from_file(model_zoo.get_config_file(PATH_TO_MODEL))
-cfg.MODEL.ROI_HEADS.NUM_CLASSES = 2
+cfg.MODEL.ROI_HEADS.NUM_CLASSES = 1
 
 # Predictor
 cfg.MODEL.WEIGHTS = os.path.join(cfg.OUTPUT_DIR, PATH_TO_WEIGHTS)
@@ -162,7 +162,7 @@ def segment_labels_from_image_path(image):
     # Input: image
     # Output: masks (np.array)
     outputs = segmentation_predictor(image)
-    label_masks = outputs["instances"].to("cpu").pred_masks
+    label_masks = outputs["instances"].to("cpu").pred_masks.numpy()
     return label_masks, image
 
 
@@ -190,7 +190,8 @@ def match_labels_across_images(all_masks, max_no_labels=MAX_NUMBER_OF_LABELS):
 
     # 1) Filter masks and remove overlapping regions:
     all_masks_edited = []  # set of masks after potential overlaps were removed.
-    for masks in all_masks:
+    for i in range(4):
+        masks = all_masks[i][0]
         masks_new, _ = review_overlaps(masks)  # remove overlaps between masks
         masks_new = remove_small_masks(
             masks_new, limit=1500
@@ -497,7 +498,7 @@ STEP 8 -- DETECT & EXCLUDE BAD LABELS
 ####################
 CLASSIFICATION_THRESHOLD_VALUE = 0.7
 PATH_TO_BAD_LABEL_DETECTION_WEIGHTS = (
-    "/content/drive/My Drive/ALICE/bad_label_detection/model.pth"
+    "/content/drive/My Drive/ALICE/model_bad_label_final.pth"
 )
 
 ###########################################################################
