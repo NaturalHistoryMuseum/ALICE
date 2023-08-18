@@ -34,7 +34,11 @@ def overlap_exclusion(msk_to_exclude_, msk_to_include_, tst):
     return msk_to_exclude_edit
 
 
-def review_overlaps(masks, filter_masks=True):
+def review_overlaps(original_masks, filter_masks=True, minimum_pixel_bound=200):
+
+    masks = remove_small_masks(
+        original_masks, limit=minimum_pixel_bound
+    )  # exclude tiny masks.
 
     n_ = np.shape(masks)[0]
 
