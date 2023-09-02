@@ -55,5 +55,5 @@ class LabelAlignmentTask(BaseTask):
         return luigi.LocalTarget(PROCESSING_OUTPUT_DIR / f'{self.image_id}-composite.jpg') 
     
 if __name__ == "__main__":
-    # luigi.build([ProcessSpecimenTask(image_id='011244568', force=True)], local_scheduler=True)
-    luigi.build([LabelAlignmentTask(image_id='011244568', force=True)])
+    luigi.build([LabelAlignmentTask(image_id='011244568', force=True)], local_scheduler=True)
+    # luigi.build([LabelAlignmentTask(image_id='011244568', force=True)])

@@ -130,40 +130,6 @@ STEP 1 -- SEGMENTATION
 ----------------------
 """
 
-####################
-# Variables to edit:
-####################
-SEGMENTATION_THRESHOLD_VALUE = 0.7
-PATH_TO_MODEL = "COCO-InstanceSegmentation/mask_rcnn_R_50_FPN_3x.yaml"
-PATH_TO_WEIGHTS = "/content/drive/My Drive/ALICE/model_final.pth"
-
-###########################################################################
-
-setup_logger()
-
-# Model setup
-cfg = get_cfg()
-cfg.merge_from_file(model_zoo.get_config_file(PATH_TO_MODEL))
-cfg.MODEL.ROI_HEADS.NUM_CLASSES = 1
-
-# Predictor
-cfg.MODEL.WEIGHTS = os.path.join(cfg.OUTPUT_DIR, PATH_TO_WEIGHTS)
-cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = SEGMENTATION_THRESHOLD_VALUE
-segmentation_predictor = DefaultPredictor(cfg)
-
-###########################################################################
-
-############
-# Functions
-############
-
-
-def segment_labels_from_image_path(image):
-    # Input: image
-    # Output: masks (np.array)
-    outputs = segmentation_predictor(image)
-    label_masks = outputs["instances"].to("cpu").pred_masks.numpy()
-    return label_masks, image
 
 
 """
@@ -505,26 +471,6 @@ STEP 8 -- DETECT & EXCLUDE BAD LABELS
 -------------------------------------
 """
 
-####################
-# Variables to edit:
-####################
-CLASSIFICATION_THRESHOLD_VALUE = 0.7
-PATH_TO_BAD_LABEL_DETECTION_WEIGHTS = (
-    "/content/drive/My Drive/ALICE/model_bad_label_final.pth"
-)
-
-###########################################################################
-
-# Model setup
-del cfg
-cfg = get_cfg()
-cfg.merge_from_file(model_zoo.get_config_file(PATH_TO_MODEL))
-cfg.MODEL.ROI_HEADS.NUM_CLASSES = 2
-
-# Predictor
-cfg.MODEL.WEIGHTS = os.path.join(cfg.OUTPUT_DIR, PATH_TO_BAD_LABEL_DETECTION_WEIGHTS)
-cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = CLASSIFICATION_THRESHOLD_VALUE
-good_or_bad_label_predictor = DefaultPredictor(cfg)
 
 ###########################################################################
 

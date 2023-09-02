@@ -4,10 +4,19 @@ import skimage.io as io
 import pandas as pd
 from copy import deepcopy
 import itertools
-from source_functions.demo import resize_image, colour_pin_mask, find_top_label
-from source_functions.main import find_aligned_label
-from source_functions.alignment_helper_functions import adjust_alignment
-from source_functions.label_merging import align_merged_label, new_corners
+
+
+
+try:
+    # from source_functions.demo import resize_image, colour_pin_mask, find_top_label
+    from source_functions.main import find_aligned_label
+    from source_functions.alignment_helper_functions import adjust_alignment
+    from source_functions.label_merging import align_merged_label, new_corners
+except:
+    # from demo import resize_image, colour_pin_mask, find_top_label
+    from main import find_aligned_label
+    from alignment_helper_functions import adjust_alignment
+    from label_merging import align_merged_label, new_corners
 
 
 def return_image(id__, i, image_table, sample_pth, size_limit=2048):

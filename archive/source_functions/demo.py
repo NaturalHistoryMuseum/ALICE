@@ -11,7 +11,7 @@ from copy import deepcopy
 import warnings
 
 warnings.filterwarnings("ignore")
-import config
+# import config
 
 # Import Mask RCNN
 import utils

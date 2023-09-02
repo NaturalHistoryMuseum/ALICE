@@ -5,6 +5,9 @@ import os
 
 DEBUG = os.getenv('DEBUG') or 1
 
+# Maximum number of labels to look at per image.
+MAX_NUMBER_OF_LABELS = 6
+
 ###### Paths #######
 
 ROOT_DIR = Path(__file__).parent.parent.resolve()

@@ -16,9 +16,10 @@ cfg.MODEL.ROI_HEADS.NUM_CLASSES = 1  # only has one class (label)
 
 predictor = DefaultPredictor(cfg)
 
-def predict_masks(image_path: Path):
-    img = cv2.imread(str(image_path))
-    return predictor(img)
+def predict_masks(image):
+    return predictor(image)
+
+
     
     
     
