@@ -3,8 +3,13 @@ from detectron2 import model_zoo
 from detectron2.engine import DefaultPredictor
 from pathlib import Path
 import cv2
+from detectron2.utils.visualizer import Visualizer
+from detectron2.utils.visualizer import ColorMode
+from pathlib import Path
+import cv2
+from numpy.typing import NDArray
 
-from alice.config import MODEL_DIR, EVAL_DIR
+from alice.config import MODEL_DIR
 
 
 cfg = get_cfg()
@@ -14,12 +19,19 @@ cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = 0.9   # set testing threshold
 cfg.MODEL.DEVICE='cpu'
 cfg.MODEL.ROI_HEADS.NUM_CLASSES = 1  # only has one class (label)
 
-predictor = DefaultPredictor(cfg)
+mask_predictor = DefaultPredictor(cfg)
 
-def predict_masks(image):
-    return predictor(image)
-
-
-    
+def visualise_mask_predictions(image: NDArray, predictions) -> NDArray:
+    """
+    Return image as numpy array. 
+    Use from google.colab.patches import cv2_imshow to display in colab
+    """
+    v = Visualizer(image[:, :, ::-1],
+                   metadata=None, 
+                   scale=0.7, 
+                   instance_mode=ColorMode.IMAGE_BW  # remove the colors of unsegmented pixels
+    )
+    v = v.draw_instance_predictions(predictions["instances"].to("cpu"))
+    return v.get_image()[:, :, ::-1]    
     
     

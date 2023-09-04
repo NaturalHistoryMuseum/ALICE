@@ -16,3 +16,5 @@ data/*
 .venv/
 .log
 .cache
+log/
+*.egg-info

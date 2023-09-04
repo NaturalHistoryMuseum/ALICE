@@ -49,7 +49,7 @@ class LabelAlignmentTask(BaseTask):
 
     def run(self):
         for i in self.input():  
-            print(i)
+            print(i.path)
         
     def output(self):     
         return luigi.LocalTarget(PROCESSING_OUTPUT_DIR / f'{self.image_id}-composite.jpg') 

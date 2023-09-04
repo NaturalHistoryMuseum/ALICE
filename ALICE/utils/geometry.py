@@ -1,61 +1,27 @@
-from hashlib import blake2b
+import math
 import numpy as np
+import cv2
 from copy import deepcopy
 from scipy.interpolate import interp1d
 from skimage import measure
-import cv2
 from collections import Counter
 from shapely import LineString
-from itertools import zip_longest
 import sympy
-import math
 
 
-def pairwise(iterable):
-    return zip_longest(iterable, iterable[1:], fillvalue=iterable[0])
-
-def iter_list_from_value(lst, value):
-    # Iterate through list, starting from value, and looping to start to end at value
-    i = lst.index(value)
-    yield from lst[i:] + lst[:i]
-    
-
-#############################
-#       quadrilaterals      #
-#############################
-
-
-def approx_quadrilateral_from_closest_edges(edges, mask):
+def calculate_angle(x1, y1, x2, y2, x3, y3):
     """
-    Approximate the quadrilateral vertices, from the two closest edges
-    
-    We create a line with same slope, and then calculate the position intersecting
-    the mask at the greatest perpendicular distance from the initial edge
-    
-    Intersection of these four lines will be the quadrilateral vertices
-    
+    Calculate angle between three points
     """
-    lines = []
-    # Loop through the two good edges, creating a line with the same slope
-    # which interesect the further perpendicular edge of the mask
-    for edge in edges:
-        extended_edge = extend_line(edge, mask.width * mask.height)
-        furthest_point = get_furthest_point_perpendicular_from_line(extended_edge, mask.edge_points())
-        new_line = get_line_at_point(extended_edge, furthest_point, mask.width)
-        lines.append((extended_edge, new_line))
-
-    # Calculate new vertices from line intersections
-    vertices = []
-    for line in lines[0]:
-        for perpendicular_line in lines[1]:
-            if intersection := line.intersection(perpendicular_line):
-                vertices.append((int(intersection.x), int(intersection.y)))  
-
-    # FIXME: The accuracy of this can be improved by adding perspective correction
-
-    ordered_vertices = cv2.convexHull(np.array(vertices), clockwise=False, returnPoints=True)
-    # Convert to list of tuples
-    return [tuple(point[0]) for point in ordered_vertices]
+    vector1 = [x1 - x2, y1 - y2]
+    vector2 = [x3 - x2, y3 - y2]
+    
+    dot_product = sum(i * j for i, j in zip(vector1, vector2))
+    magnitude1 = math.sqrt(sum(x**2 for x in vector1))
+    magnitude2 = math.sqrt(sum(x**2 for x in vector2))
+    
+    angle_radians = math.acos(dot_product / (magnitude1 * magnitude2))
+    return math.degrees(angle_radians)
 
 
 def approx_best_fit_ngon(contours, n: int = 4) -> list[(int, int)]:
@@ -189,26 +155,33 @@ def get_line_at_point(line: LineString, point, image_width):
     b = point[1] - m * point[0]
     return LineString([(0, b), (image_width, image_width * m + b)])
 
-def calculate_angle_between_lines(line1, line2):
-    """
-    Calculate the angle between lines - will work even if the lines dont't touch    
-    """
-    start1, end1 = line1.coords
-    start2, end2 = line2.coords
+#############################
+#       quadrilaterals      #
+#############################
+
+
+
+
+# def calculate_angle_between_lines(line1, line2):
+#     """
+#     Calculate the angle between lines - will work even if the lines dont't touch    
+#     """
+#     start1, end1 = line1.coords
+#     start2, end2 = line2.coords
     
-    # Calculate direction vectors
-    vector1 = (end1[0] - start1[0], end1[1] - start1[1])
-    vector2 = (end2[0] - start2[0], end2[1] - start2[1])
+#     # Calculate direction vectors
+#     vector1 = (end1[0] - start1[0], end1[1] - start1[1])
+#     vector2 = (end2[0] - start2[0], end2[1] - start2[1])
     
-    # Calculate dot product and magnitudes
-    dot_product = vector1[0] * vector2[0] + vector1[1] * vector2[1]
-    magnitude1 = math.sqrt(vector1[0]**2 + vector1[1]**2)
-    magnitude2 = math.sqrt(vector2[0]**2 + vector2[1]**2)
+#     # Calculate dot product and magnitudes
+#     dot_product = vector1[0] * vector2[0] + vector1[1] * vector2[1]
+#     magnitude1 = math.sqrt(vector1[0]**2 + vector1[1]**2)
+#     magnitude2 = math.sqrt(vector2[0]**2 + vector2[1]**2)
     
-    # Calculate cosine of the angle
-    cosine_angle = dot_product / (magnitude1 * magnitude2)
+#     # Calculate cosine of the angle
+#     cosine_angle = dot_product / (magnitude1 * magnitude2)
     
-    # Calculate angle in radians
-    angle_radians = math.acos(cosine_angle) 
-    angle_degrees = math.degrees(angle_radians)
-    return angle_degrees
+#     # Calculate angle in radians
+#     angle_radians = math.acos(cosine_angle) 
+#     angle_degrees = math.degrees(angle_radians)
+#     return angle_degrees
