@@ -7,7 +7,11 @@ from skimage import measure
 from collections import Counter
 from shapely import LineString
 import sympy
+import mpmath
+from typing import List
 
+from alice.models.point import Point, points_to_numpy
+from alice.config import IMAGE_BASE_WIDTH
 
 def calculate_angle(x1, y1, x2, y2, x3, y3):
     """
@@ -24,13 +28,14 @@ def calculate_angle(x1, y1, x2, y2, x3, y3):
     return math.degrees(angle_radians)
 
 
-def approx_best_fit_ngon(contours, n: int = 4) -> list[(int, int)]:
+def approx_best_fit_quadrilateral(contours) -> list[(int, int)]:
     """
     Fit n-sided polygon to contour
     
-    From: https://stackoverflow.com/questions/41138000/fit-quadrilateral-tetragon-to-a-blob
-    Based on: View Frustum Optimization To Maximize Object’s Image Area
+    Based on: https://stackoverflow.com/questions/41138000/fit-quadrilateral-tetragon-to-a-blob
+    Frustum Optimization To Maximize Object’s Image Area
     https://citeseerx.ist.psu.edu/document?repid=rep1&type=pdf&doi=1fbd43f3827fffeb76641a9c5ab5b625eb5a75ba
+    With minimum corner degrees to converge to a box
     """
 
     hull = cv2.convexHull(contours)
@@ -39,8 +44,8 @@ def approx_best_fit_ngon(contours, n: int = 4) -> list[(int, int)]:
     # to sympy land
     hull = [sympy.Point(*pt) for pt in hull]
 
-    # run until we cut down to n vertices
-    while len(hull) > n:
+    # run until we cut down to 4 vertices
+    while len(hull) > 4:
         best_candidate = None
 
         # for all edges in hull ( <edge_idx_1>, <edge_idx_2> ) ->
@@ -63,6 +68,10 @@ def approx_best_fit_ngon(contours, n: int = 4) -> list[(int, int)]:
             # makes with the two adjacent edges is more than 180°
             if sympy.N(angle1 + angle2) <= sympy.pi:
                 continue
+            
+            # Enforce minimum corner degrees
+            # if sympy.N(angle1) < min_corner_radians or sympy.N(angle2) < min_corner_radians:
+            #     continue            
 
             # find the new vertex if we delete this edge
             adj_edge_1 = sympy.Line(adj_pt_1, edge_pt_1)
@@ -86,16 +95,13 @@ def approx_best_fit_ngon(contours, n: int = 4) -> list[(int, int)]:
 
         hull = best_candidate[0]
 
-    # back to python land
-    hull = [(int(x), int(y)) for x, y in hull]
-
-    return hull
+    return [Point(x, y) for x, y in hull]
 
 #####################
 #       LINE        #
 #####################
 
-def extend_line(line: LineString, extension_length):
+def extend_line(line: LineString, extension_length=IMAGE_BASE_WIDTH):
     """
     Extend a line by extension length in both directions
     """
@@ -143,45 +149,26 @@ def get_furthest_point_perpendicular_from_line(line: LineString, points):
     """
     m, b = calculate_line_slope_intercept(line)   
     distances = [calculate_perpendicular_distance_point_to_line(x,y,m,b) for x, y in points]
-    return points[np.argmax(distances)]
+    return Point(*points[np.argmax(distances)])
 
 
-def get_line_at_point(line: LineString, point, image_width):     
+def order_points(points: List[Point], clockwise=False):
     """
-    Reposition line with the same slope, so intercepts points
+    Order points - get more reliable results than imutils perspective.order_points 
     """
-    m, _ = calculate_line_slope_intercept(line) 
-    # Calculate new intercept
-    b = point[1] - m * point[0]
-    return LineString([(0, b), (image_width, image_width * m + b)])
+    hull = cv2.convexHull(points_to_numpy(points), clockwise=clockwise)
+    # And back to list of Points
+    return [Point(*point.ravel()) for point in hull]
 
-#############################
-#       quadrilaterals      #
-#############################
-
-
-
-
-# def calculate_angle_between_lines(line1, line2):
-#     """
-#     Calculate the angle between lines - will work even if the lines dont't touch    
-#     """
-#     start1, end1 = line1.coords
-#     start2, end2 = line2.coords
-    
-#     # Calculate direction vectors
-#     vector1 = (end1[0] - start1[0], end1[1] - start1[1])
-#     vector2 = (end2[0] - start2[0], end2[1] - start2[1])
-    
-#     # Calculate dot product and magnitudes
-#     dot_product = vector1[0] * vector2[0] + vector1[1] * vector2[1]
-#     magnitude1 = math.sqrt(vector1[0]**2 + vector1[1]**2)
-#     magnitude2 = math.sqrt(vector2[0]**2 + vector2[1]**2)
-    
-#     # Calculate cosine of the angle
-#     cosine_angle = dot_product / (magnitude1 * magnitude2)
-    
-#     # Calculate angle in radians
-#     angle_radians = math.acos(cosine_angle) 
-#     angle_degrees = math.degrees(angle_radians)
-#     return angle_degrees
+def calculate_line_intersecting_point(line, point: Point, width=2000):
+    """
+    Calculate new line with the same slope, interceptiing point
+    """
+    x, y = point
+    m, b = calculate_line_slope_intercept(line)
+    # Calculate the new intercept for the line passing through x, y
+    new_b = y - m * x
+    calc_y = lambda x: (round(m * x + new_b))
+    point1 = (0, calc_y(0))
+    point2 = (width, calc_y(width))
+    return LineString([point1, point2])

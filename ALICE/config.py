@@ -14,19 +14,20 @@ MAX_NUMBER_OF_LABELS = 6
 ###### Paths #######
 
 ROOT_DIR = Path(__file__).parent.parent.resolve()
-DATA_DIR = Path(ROOT_DIR / 'data')
+DATA_DIR = ROOT_DIR / 'data'
+TEST_DIR = ROOT_DIR / 'test'
 
-ASSETS_DIR = Path(DATA_DIR / 'assets')
-MODEL_DIR = Path(DATA_DIR / 'models')
+ASSETS_DIR = DATA_DIR / 'assets'
+MODEL_DIR = DATA_DIR / 'models'
 MODEL_DIR.mkdir(parents=True, exist_ok=True)
 
-EVAL_DIR = Path(DATA_DIR / 'evaluation')
+EVAL_DIR = DATA_DIR / 'evaluation'
 EVAL_DIR.mkdir(parents=True, exist_ok=True)
 
-CACHE_DIR = Path(ROOT_DIR / '.cache')
+CACHE_DIR = ROOT_DIR / '.cache'
 CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
-LOG_DIR = Path(ROOT_DIR / 'log')
+LOG_DIR = ROOT_DIR / 'log'
 LOG_DIR.mkdir(parents=True, exist_ok=True)
 
 # VISUALISATION_DIR = Path(DATA_DIR / 'visualisations')
@@ -92,8 +93,14 @@ class DebugLogger(logging.Logger):
             return
             
         if self.isEnabledFor(DEBUG_IMAGE):
-            file_name = f'{self.specimen_id}-{debug_code}.jpg'
-            path = LOG_DIR / file_name
+            dir_path = LOG_DIR / self.specimen_id
+            dir_path.mkdir(parents=True, exist_ok=True)
+            file_name = f'{debug_code}.jpg'
+            path = dir_path / file_name
+            if path.exists():
+                existing_file_count = len(list(dir_path.glob(f'{file_name}*')))                
+                path = dir_path / f'{path.stem}-{existing_file_count}.jpg'
+                        
             cv2.imwrite(str(path), image) 
             
 # Reset default logging levels            # 

@@ -15,7 +15,7 @@ from alice.config import (
 
 from alice.tasks.base import BaseTask
 from alice.utils.image import resize_image
-
+from alice.models.specimen import Specimen
 
 class ImageTask(BaseTask):
     path = luigi.PathParameter()  
@@ -63,13 +63,16 @@ class SpecimenTask(BaseTask):
             image_id = self.parse_filename(path)
             images[image_id] = path
             
-        # Sort the dictionary items by their keys (image id)
+        # Sort the dictionary items by their keys (image id), so the order is preserved
         sorted_images = sorted(images.items())
-
-        # Extract the values into a list
-        image_paths = [path for key, path in sorted_images]    
+        # Sorted dict produces list of tuples - so get the path bits
+        image_paths = [t[1] for t in sorted_images]
+        
+        specimen = Specimen(self.specimen_id, paths=image_paths)
+        labels = specimen.get_labels()
+   
                 
-        print(image_paths)
+        # print(image_paths)
 
         
     def output(self):     

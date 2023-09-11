@@ -2,12 +2,12 @@ import numpy as np
 import cv2
 from typing import List
 from operator import attrgetter
-
+import uuid
 
 
 from alice.models.base import Base
 from alice.predict import visualise_mask_predictions, mask_predictor
-
+from alice.config import logger
 
 class Mask(Base):
     def __init__(self, mask: np.array, image):        
@@ -65,7 +65,16 @@ class Mask(Base):
         """
         Subtract mask from mask
         """
-        self.mask = cv2.bitwise_and(self.mask, cv2.bitwise_not(subtraction_mask))        
+        # pre = np.count_nonzero(self.mask)
+        mask = cv2.bitwise_and(self.mask, cv2.bitwise_not(subtraction_mask))      
+        # post = np.count_nonzero(mask) 
+        # Has the mask shape changed
+        if not np.array_equal(mask, self.mask):
+            logger.debug_image(self.visualise(), 'resized-mask-pre')
+            self.mask = mask
+            logger.debug_image(self.visualise(), 'resized-mask-post')
+
+
 
 class LabelMasks(Base):
 
@@ -90,9 +99,9 @@ class LabelMasks(Base):
         """
         Get a mask representing all labels above the label_index
         """
-        # Get masks higher up the label stack (higher masks have index 0)
-        # CHECK MAKSKSSKSKSKSS. Which one needed this filter???
+        # Get masks higher up the label stack (higher masks have lower index 0 being topmost)
         higher_masks = self.label_masks[:label_index]
+        # higher_masks = self.label_masks[label_index+1:]
         combined_mask = np.zeros((self.image_height, self.image_width), dtype=np.uint8)
         for mask in higher_masks:
             cv2.fillPoly(combined_mask, [mask.get_polygon()], 255)    
@@ -107,9 +116,10 @@ class LabelMasks(Base):
             higher_labels_mask = self.get_higher_labels_mask(label_index)
             mask.subtract_mask(higher_labels_mask)
             
-    def get_masked_image(self, label_index):
+    def image_with_higher_labels_masked(self, label_index):
         """
         Get the image with all higher labels masked in white
+        This is used so text from higher labels isn't eroneously deetcted 
         """
         image = self.image.copy()
         higher_labels_mask = self.get_higher_labels_mask(label_index)
