@@ -21,7 +21,7 @@ class Mask(Base):
         """
         Vertical midpoint of a mask
         """        
-        return sum([min(np.where(self.mask == True)[0]), max(np.where(self.mask == True)[0])]) / 2 
+        return self.centroid[1]
     
     @property
     def centroid(self):
@@ -29,14 +29,8 @@ class Mask(Base):
         Centroid of the mask
         """
         coords = np.where(self.mask == 1)
-
         centroid_x = np.mean(coords[1])
         centroid_y = np.mean(coords[0])
-        # FIXME: Combine this with  
-        
-        # poly = self.get_polygon()
-        # centroid_x = np.mean(self.mask[:, 0, 0])
-        # centroid_y = np.mean(self.mask[:, 0, 1])
         return Point(centroid_x, centroid_y)
 
     @property

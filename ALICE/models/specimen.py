@@ -70,10 +70,9 @@ if __name__ == "__main__":
     
     # paths = [PROCESSING_IMAGE_DIR / f'011245996_additional_{i}.jpeg' for i in range(1,5)]
     
-    # # paths = [PROCESSING_INPUT_DIR / f'Tri434014_additional_{i}.JPG' for i in range(1,5)]
-    specimen_id = '011250151'    
-    paths = [PROCESSING_IMAGE_DIR / f'011250151_additional({i}).jpg' for i in range(1,5)]
-    # specimen_id = 'Tri434014'    
-    # paths = [PROCESSING_IMAGE_DIR / f'Tri434014_additional_{i}.jpg' for i in range(1,5)]    
+    # specimen_id = '011250151'    
+    # paths = [PROCESSING_IMAGE_DIR / f'011250151_additional({i}).jpg' for i in range(1,5)]
+    specimen_id = 'Tri434015'    
+    paths = [PROCESSING_IMAGE_DIR / f'Tri434015_additional_{i}.jpg' for i in range(1,5)]    
     specimen = Specimen(specimen_id, paths)
     labels = specimen.get_labels()

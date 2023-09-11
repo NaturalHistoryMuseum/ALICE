@@ -85,125 +85,62 @@ class Label(Base):
                             
         self.valid = LabelValid.INVALID_QUADRILATERAL
         
-    def get_invalid_corner_edge(self, invalid_corner: Literal['a', 'b', 'c', 'd'], quad):       
-        """
-        For an invalid corner get the edge to correct
-        Look at edges on both side and select the wonkiest - the one with the greatest difference in slopes
-        """
-                
-        vertice_labels = list(quad.vertices.keys())
-        idx = vertice_labels.index(invalid_corner)
-        prev_corner = vertice_labels[(idx - 1) % 4]
-        next_corner = vertice_labels[(idx + 1) % 4]
-        
-        edge_labels = [
-            f'{invalid_corner}_{next_corner}',
-            f'{prev_corner}_{invalid_corner}'
-        ]
-        centroid = self.label_mask.centroid
-        dist_diff = [] 
-        
-
-        
-        print('NEWWWW::')
-        
-        image = self.image.copy()
-        
-        print('CENTROID:', centroid)
-        print('Y:', self.label_mask.y_midpoint)
-        
-        
-        image = centroid.visualise(image)
-        logger.debug_image(image, f'centroid')        
-        
-        logger.debug_image(quad.visualise(), f'quad')      
-        
-        logger.debug_image(self.label_mask.visualise(), f'label-mask')                        
-        
-        for edge_label in edge_labels:
-            edge = quad.edges[edge_label]
-            dist_from_centroid = np.array([math.dist(pt, centroid) for pt in edge.coords])
-            print(dist_from_centroid)
-            dist_diff.append(np.abs(np.diff(dist_from_centroid))[0])
-            
-            
-            
-        
-        dist_diff = np.array(dist_diff)
-        invalid_corner_edge = edge_labels[dist_diff.argmax(axis=0)]
-        return invalid_corner_edge
-        print(invalid_corner_edge)
-            
-        print(dist_diff)
-                
-        
-        # next_edge = quad.edges[]
-        # prev_edge = quad.edges[]
-        # 
-        
-        # math.dist(p, q)
-        
-        
-       
-        # print('NEXT: ', next_edge)
-        # print('PREV:', prev_edge)
-        
-        # image = self.image.copy()
-        
-        # print('CENTROID:', centroid)
-        
-        # image = centroid.visualise(image)
-        # logger.debug_image(image, f'centroid')    
-        
-        
-        
-                
-        next_edge = [edge for edge in quad.edges.keys() if edge.startswith(invalid_corner)][0]
+    def get_angle_of_parallel_edges(self, quad, next_edge):
         edges = list(iter_list_from_value(list(quad.edges.keys()), next_edge))
-
         parallel_edges = [
             [edges[3], edges[1]],
             [edges[0], edges[2]]
         ]
-        
-        print('INVALID: ', invalid_corner)
-        print("NEXT: ", next_edge)
-        
-        print(parallel_edges)
-
-        slope_diff = []
-        for edges in parallel_edges:    
-            
+        angles = {}   
+        for edges in parallel_edges:                
             edge1 = quad.edges[edges[0]]
-            edge2 = quad.edges[edges[1]]
-            
-            image = self.image.copy()
+            edge2 = quad.edges[edges[1]]   
+            angles[edges[0]] = self._get_angle_between_lines(edge1, edge2)
+        return angles
 
-            
-            p = np.array(edge1.coords).astype(np.int32)
-            cv2.line(image, p[0], p[1], (0, 255, 0), 5)         
-            p = np.array(edge2.coords).astype(np.int32)
-            cv2.line(image, p[0], p[1], (0, 255, 0), 5)      
-            
-            logger.debug_image(image, f'edge-{edges[0]}-{edges[1]}')                         
-            
-            print(list(edge1.coords))
-            print(list(edge2.coords))
-            angle = self._get_angle_between_lines(edge1, edge2)
-            print('ANGLE: ', angle)
-            
-                    
-            slope1 = self._get_line_slope(quad.edges[edges[0]])
-            print(slope1)
-            slope2 = self._get_line_slope(quad.edges[edges[1]])
-            print(slope2)
-            slope_diff.append(abs(slope1 - slope2))
+    def get_invalid_corner_edge(self, invalid_corner: Literal['a', 'b', 'c', 'd'], quad):       
+        """
+        For an invalid corner, identify the edge to correct
+        
+        First, we try and find the 'wonkiest' - the side with the greatest difference in angle to its 
+        opposite/parallel edge
+        
+        If both parallel edges have a similar angle (must be at least 50% different), we triangulate to the 
+        centroid of the mask - the line with the points with greatest difference from the centroid will be corrected
 
-        slope_diff = np.array(slope_diff)    
-        print(slope_diff)
-        invalid_corner_edge = parallel_edges[slope_diff.argmax(axis=0)][0]
-        return invalid_corner_edge   
-    
+        """
+        
+        vertice_labels = list(quad.vertices.keys())
+        idx = vertice_labels.index(invalid_corner)
+        prev_corner = vertice_labels[(idx - 1) % 4]
+        next_corner = vertice_labels[(idx + 1) % 4]
+        # Next edge after the invalid corner
+        next_edge = f'{invalid_corner}_{next_corner}'
+        prev_edge = f'{prev_corner}_{invalid_corner}'
+                
+        parallel_edge_angles = self.get_angle_of_parallel_edges(quad, next_edge)
+        
+        angles_arr = np.array(list(parallel_edge_angles.values()))
+        # The parallel angles need to be sufficiently different to be used
+        if np.abs(np.diff(angles_arr)) / np.max(angles_arr) > 0.5:
+            return max(parallel_edge_angles, key=lambda k: parallel_edge_angles[k])
+
+        edge_labels = [
+            prev_edge,
+            next_edge
+        ]
+        centroid = self.label_mask.centroid
+        dist_diff = [] 
+                            
+        for edge_label in edge_labels:
+            edge = quad.edges[edge_label]
+            dist_from_centroid = np.array([math.dist(pt, centroid) for pt in edge.coords])
+            dist_diff.append(np.abs(np.diff(dist_from_centroid))[0])
+
+        dist_diff = np.array(dist_diff)
+        invalid_corner_edge = edge_labels[dist_diff.argmax(axis=0)]
+        return invalid_corner_edge
+
     @staticmethod
     def _get_line_slope(line):
         m, _ = calculate_line_slope_intercept(line)        
