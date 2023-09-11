@@ -90,6 +90,74 @@ class Label(Base):
         For an invalid corner get the edge to correct
         Look at edges on both side and select the wonkiest - the one with the greatest difference in slopes
         """
+                
+        vertice_labels = list(quad.vertices.keys())
+        idx = vertice_labels.index(invalid_corner)
+        prev_corner = vertice_labels[(idx - 1) % 4]
+        next_corner = vertice_labels[(idx + 1) % 4]
+        
+        edge_labels = [
+            f'{invalid_corner}_{next_corner}',
+            f'{prev_corner}_{invalid_corner}'
+        ]
+        centroid = self.label_mask.centroid
+        dist_diff = [] 
+        
+
+        
+        print('NEWWWW::')
+        
+        image = self.image.copy()
+        
+        print('CENTROID:', centroid)
+        print('Y:', self.label_mask.y_midpoint)
+        
+        
+        image = centroid.visualise(image)
+        logger.debug_image(image, f'centroid')        
+        
+        logger.debug_image(quad.visualise(), f'quad')      
+        
+        logger.debug_image(self.label_mask.visualise(), f'label-mask')                        
+        
+        for edge_label in edge_labels:
+            edge = quad.edges[edge_label]
+            dist_from_centroid = np.array([math.dist(pt, centroid) for pt in edge.coords])
+            print(dist_from_centroid)
+            dist_diff.append(np.abs(np.diff(dist_from_centroid))[0])
+            
+            
+            
+        
+        dist_diff = np.array(dist_diff)
+        invalid_corner_edge = edge_labels[dist_diff.argmax(axis=0)]
+        return invalid_corner_edge
+        print(invalid_corner_edge)
+            
+        print(dist_diff)
+                
+        
+        # next_edge = quad.edges[]
+        # prev_edge = quad.edges[]
+        # 
+        
+        # math.dist(p, q)
+        
+        
+       
+        # print('NEXT: ', next_edge)
+        # print('PREV:', prev_edge)
+        
+        # image = self.image.copy()
+        
+        # print('CENTROID:', centroid)
+        
+        # image = centroid.visualise(image)
+        # logger.debug_image(image, f'centroid')    
+        
+        
+        
+                
         next_edge = [edge for edge in quad.edges.keys() if edge.startswith(invalid_corner)][0]
         edges = list(iter_list_from_value(list(quad.edges.keys()), next_edge))
 
@@ -110,6 +178,7 @@ class Label(Base):
             edge2 = quad.edges[edges[1]]
             
             image = self.image.copy()
+
             
             p = np.array(edge1.coords).astype(np.int32)
             cv2.line(image, p[0], p[1], (0, 255, 0), 5)         

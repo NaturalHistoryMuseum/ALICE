@@ -31,6 +31,7 @@ class Point:
     
     def visualise(self, image, colour=(255,0,0), size=10):
         cv2.circle(image, self.to_tuple(), 5, colour, size)
+        return image
     
     def __getitem__(self, i):
         xy = self.to_numpy() 

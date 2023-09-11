@@ -41,7 +41,6 @@ class Quadrilateral(Base):
         # ordered counter clockwise, with b being the next corner counter clockwise
         # A & C will be opposite each other; B & D opposite
         self.vertices = OrderedDict(zip(['a', 'b', 'c', 'd'], iter_list_from_value(vertices, self.closest_point)))
-
         # Loop through vertices, creating edges names a_b, b_c etc.,
         self.edges = OrderedDict([(
             f'{k1}_{k2}', LineString([
@@ -122,7 +121,7 @@ class Quadrilateral(Base):
     def _is_valid_angle(self, angle: int):
        return self.valid_angle['min'] <= angle <= self.valid_angle['max']
             
-    def get_invalid_corners(self):            
+    def get_invalid_corners(self):         
         return [label for label, angle in self.angles.items() if not self._is_valid_angle(angle)]
 
     @property
