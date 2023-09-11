@@ -4,12 +4,18 @@ from collections import OrderedDict
 from shapely import LineString
 import cv2
 from typing import List
-
+from enum import Enum
 
 from alice.utils import iter_list_from_value, pairwise, min_max
 from alice.utils.geometry import calculate_angle, order_points
 from alice.models.base import Base
 from alice.models.point import Point, points_to_numpy
+from alice.config import logger
+
+class QuadMethod(Enum):
+    DEFAULT = 0
+    CORNER_CORRECTED = 1
+    CORNER_PROJECTED = 2
 
 class Quadrilateral(Base):
     
@@ -19,9 +25,9 @@ class Quadrilateral(Base):
         'max': 160
     }    
     
-    def __init__(self, vertices: List[Point], image, is_approx=False):
+    def __init__(self, vertices: List[Point], image, method=QuadMethod.DEFAULT):
         super().__init__(image)
-        self.is_approx = is_approx
+        self.method = method
         
         vertices = order_points(vertices)
         
@@ -29,7 +35,6 @@ class Quadrilateral(Base):
         self.closest_point = self.get_closest_point(
             points_to_numpy(vertices)
         )
-
 
         # Vertices are assigned to a,b,c,d
         # A will be the closest point (with the maximum y value), with the points
@@ -80,18 +85,25 @@ class Quadrilateral(Base):
 
         # Oppos corners should not have more than this angle difference
         # Otherwise box is squashed
-        valid_angle_diff = 15
+        valid_angle_diff = 20
         if len(self.vertices) != 4:
             return False
             
         angles = np.array(list(self.angles.values()))
         min_angle, max_angle = min_max(angles)
-        if min_angle < self.valid_angle['min'] or max_angle > self.valid_angle['max']:
+        angle_diff = self.get_max_angle_diff()
+        
+        if min_angle < self.valid_angle['min']:
+            logger.info('Quadrilateral min angle %s is below threshold of %s', min_angle, self.valid_angle['min'])
+            return False
+        elif max_angle > self.valid_angle['max']:
+            logger.info('Quadrilateral max angle %s is above threshold of %s', max_angle, self.valid_angle['max'])
+            return False
+        elif(angle_diff > valid_angle_diff):
+            logger.info('Quadrilateral angle diff %s is above threshold of %s', angle_diff, valid_angle_diff)
             return False
         
-        angle_diff = self.get_max_angle_diff()
- 
-        return angle_diff < valid_angle_diff
+        return True
     
     def get_max_angle_diff(self):
         oppos_corners = [('a', 'c'), ('b', 'd')]
@@ -122,10 +134,17 @@ class Quadrilateral(Base):
         return round(max([self.edges['b_c'].length, self.edges['d_a'].length]))
 
     def _visualise(self, image):
-        edge_color = (255, 255, 0) if self.is_approx else (0, 255, 0)
+        if self.method == QuadMethod.DEFAULT:
+            edge_color = (0, 255, 0)
+        elif self.method == QuadMethod.CORNER_CORRECTED:
+            edge_color = (255, 0, 0)
+        elif self.method == QuadMethod.CORNER_PROJECTED:
+            edge_color = (0, 0, 255)            
+        
         for edge in self.edges.values():
             p = np.array(edge.coords).astype(np.int32)
             cv2.line(image, p[0], p[1], edge_color, 5)
+            
         for point in self.vertices.values():
             point.visualise(image)
 
