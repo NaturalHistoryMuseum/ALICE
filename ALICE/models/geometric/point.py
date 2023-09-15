@@ -43,9 +43,3 @@ class Point:
     def __eq__(self, other): 
         return self.x == other.x and self.y == other.y    
     
-    
-def points_to_numpy(points: List[Point]) -> np.array:
-    """
-    Convert list of Points to numpy array
-    """
-    return np.array([point.to_numpy() for point in points])    

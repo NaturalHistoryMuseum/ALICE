@@ -1,3 +1,5 @@
+import cv2 
+
 from craft_text_detector import (
     load_craftnet_model,
     load_refinenet_model,

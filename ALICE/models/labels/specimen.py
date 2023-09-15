@@ -1,16 +1,10 @@
-import cv2
 from pathlib import Path
 from typing import List
 from scipy.stats import mode
 
-from alice.models.base import Base
-from alice.models.mask import LabelMasks
-from alice.models.label import Label, LabelValid, InvalidLabel
-from alice.models.view import AngledView
-from alice.models.quartet import LabelQuartet
+from alice.models.labels import AngledView, LabelValid, InvalidLabel, LabelQuartet
+from alice.models.text.alignment import TextAlignment
 from alice.config import PROCESSING_IMAGE_DIR, logger
-from alice.utils import min_max
-from alice.utils.image import save_image
 from alice.log import init_log
 
 class Specimen:
@@ -41,11 +35,23 @@ class Specimen:
         
     def get_labels(self):
         quartets = self.get_label_quartets()
-        for level, quartet in quartets.items():               
-            label_images = quartet.get_cropped_labels()
-            logger.info('After size normalisation %s valid labels in level %s quartet', len(label_images), level)     
-            for i, label_image in label_images.items():
-                logger.debug_image(label_image, f'label-{level}-{i}')
+        for level, quartet in quartets.items(): 
+            pass
+            
+            # FIXME - I need to add in all the logger functions here
+            labels = quartet.get_labels()
+            # aligned =  
+                          
+            # label_images = quartet.get_cropped_labels()
+            # logger.info('After size normalisation %s valid labels in level %s quartet', len(label_images), level)     
+            # for i, label_image in label_images.items():
+            #     logger.debug_image(label_image, f'label-{level}-{i}')
+            
+            # for i, label_image in label_images:
+                
+                
+            #     text_lines = detector(label_image)
+                
 
             
                 
@@ -72,7 +78,10 @@ if __name__ == "__main__":
     
     # specimen_id = '011250151'    
     # paths = [PROCESSING_IMAGE_DIR / f'011250151_additional({i}).jpg' for i in range(1,5)]
-    specimen_id = 'Tri434015'    
-    paths = [PROCESSING_IMAGE_DIR / f'Tri434015_additional_{i}.jpg' for i in range(1,5)]    
+    specimen_id = '011250151'    
+    
+    paths = [p.resolve() for p in Path(PROCESSING_IMAGE_DIR).glob(f'{specimen_id}*.*') if p.suffix.lower() in {".jpg", ".jpeg"}] 
+   
+    assert(len(paths) == 4)
     specimen = Specimen(specimen_id, paths)
     labels = specimen.get_labels()

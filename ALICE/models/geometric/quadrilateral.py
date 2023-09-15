@@ -7,9 +7,9 @@ from typing import List
 from enum import Enum
 
 from alice.utils import iter_list_from_value, pairwise, min_max
-from alice.utils.geometry import calculate_angle, order_points
+from alice.utils.geometry import calculate_angle, order_points, points_to_numpy
 from alice.models.base import Base
-from alice.models.point import Point, points_to_numpy
+from alice.models.geometric.point import Point
 from alice.config import logger
 
 class QuadMethod(Enum):

@@ -10,7 +10,7 @@ import sympy
 import mpmath
 from typing import List
 
-from alice.models.point import Point, points_to_numpy
+from alice.models.geometric import Point
 from alice.config import IMAGE_BASE_WIDTH
 
 def calculate_angle(x1, y1, x2, y2, x3, y3):
@@ -172,3 +172,9 @@ def calculate_line_intersecting_point(line, point: Point, width=2000):
     point1 = (0, calc_y(0))
     point2 = (width, calc_y(width))
     return LineString([point1, point2])
+
+def points_to_numpy(points: List[Point]) -> np.array:
+    """
+    Convert list of Points to numpy array
+    """
+    return np.array([point.to_numpy() for point in points])   

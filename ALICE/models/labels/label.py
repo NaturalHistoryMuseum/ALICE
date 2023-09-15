@@ -6,12 +6,10 @@ from typing import List, Literal
 
 
 from alice.config import logger
-from alice.utils import min_max, iter_list_from_value
-from alice.utils.geometry import calculate_line_slope_intercept, approx_best_fit_quadrilateral, get_furthest_point_perpendicular_from_line, extend_line, calculate_line_intersecting_point
+from alice.utils import iter_list_from_value
+from alice.utils.geometry import calculate_line_slope_intercept, points_to_numpy, approx_best_fit_quadrilateral, get_furthest_point_perpendicular_from_line, extend_line, calculate_line_intersecting_point
 from alice.models.base import Base
-from alice.models.quadrilateral import Quadrilateral, QuadMethod
-from alice.models.point import Point, points_to_numpy
-
+from alice.models.geometric import Quadrilateral, QuadMethod, Point
 
 from enum import Enum
 

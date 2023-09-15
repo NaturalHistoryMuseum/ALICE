@@ -7,7 +7,7 @@ import scipy
 
 
 from alice.models.base import Base
-from alice.models.point import Point
+from alice.models.geometric import Point
 from alice.predict import visualise_mask_predictions, mask_predictor
 from alice.config import logger
 
