@@ -53,33 +53,14 @@ class LabelQuartet:
 
         y = 0
         for composite in composite_lines:
-            filled = self._fill_whitespace(composite)
-            h, w = filled.shape[:2]
+            h, w = composite.shape[:2]
             x = 0
             # Slice the filled composite into the image
-            merged[y:y+h, x:x+w] = filled
+            merged[y:y+h, x:x+w] = composite
             y+=h
             
         return merged
-        
-    @staticmethod
-    def _fill_whitespace(image):
-        """
-        Fill whitespace (from warping images) with most mean background colour
-        """
-        # FIXME: REMOVE??
-        grey = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-        # Create whiteapce mask for all pixels above 250
-        whitespace_mask = grey > 240
-        # And mask all text (to esclude from background colour calc)
-        text_mask = grey > 200
-        background_mask = ~whitespace_mask & text_mask
-        # Get mean colour outside of text & whitespace
-        colour = cv2.mean(image, mask=background_mask.astype(np.uint8))[:3]
-        # And fill the whitespace
-        image[whitespace_mask] = colour
-        return image        
-        
+ 
     @staticmethod
     def _validate_textlines_per_label(segmentations, mode: int):
         """

@@ -91,8 +91,30 @@ class TextAlignment():
         return transformed
         
     def _create_composite(self):
-        I = np.median(np.stack([v for v in self.transformed_images]), axis=0)
+        
+        images = [self._fill_whitespace(image) for image in self.transformed_images]
+        
+        I = np.median(np.stack(images), axis=0)
         composite = np.array(I, dtype="uint8") 
         logger.debug_image(composite, f'composite-line')
         return composite
+    
+    @staticmethod
+    def _fill_whitespace(image):
+        """
+        Fill whitespace with mean background colour
+        Need to do this before creating compound, so whitespace is filled/does not alter compound
+        """
+        # FIXME: REMOVE??
+        grey = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        # Create whiteapce mask for all pixels above 250
+        whitespace_mask = grey > 240
+        # And mask all text (to esclude from background colour calc)
+        text_mask = grey > 200
+        background_mask = ~whitespace_mask & text_mask
+        # Get mean colour outside of text & whitespace
+        colour = cv2.mean(image, mask=background_mask.astype(np.uint8))[:3]
+        # And fill the whitespace
+        image[whitespace_mask] = colour
+        return image         
     
