@@ -30,10 +30,8 @@ class ImageTask(BaseTask):
     
     
 class SpecimenTask(BaseTask):
-    # Regex to pull out image id from file name
-    # e.g. 011250151_additional(1) => image_id=1
-    # Brackets around e.g. (1) are optional - will work for Tri434015_additional_4
-    re_filename = re.compile(r'additional_?\(?(?P<image_id>[1-4])\)?$')
+
+    # re_filename = re.compile(r'additional_?\(?(?P<image_id>[1-4])\)?$')
     
     specimen_id = luigi.Parameter()
     
@@ -41,6 +39,7 @@ class SpecimenTask(BaseTask):
         return [p.resolve() for p in Path(PROCESSING_INPUT_DIR).glob(f'{self.specimen_id}*.*') if p.suffix.lower() in {".jpg", ".jpeg"}]    
 
     def parse_filename(self, path:Path):
+        # FIXME: Not needed here - in the specimen object
         m = self.re_filename.search(path.stem)
         return int(m.group('image_id'))
 

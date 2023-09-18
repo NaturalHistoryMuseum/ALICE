@@ -6,9 +6,11 @@ import cv2
 import re
 import imutils
 import pandas as pd
+import itertools
 
 from alice.utils import min_max
-
+from alice.models.geometric import Rectangle, Point
+from alice.utils.geometry import points_to_numpy
 
 class Cluster():
 
@@ -27,7 +29,18 @@ class Cluster():
     @property
     def _y_intervals(self):
         # Get all the y value of the boxes
-        return np.array(self._bboxes)[:,:,1]
+        return self.bboxes[:,:,1]
+    
+    @property
+    def bboxes(self):
+        # Get bboxes as numpy array
+        return np.array(self._bboxes)
+    
+    
+    @property
+    def hull(self):    
+        points = list(itertools.chain(*[Rectangle.from_numpy(bbox).vertices for bbox in self.bboxes]))
+        return cv2.convexHull(points_to_numpy(points))       
     
     def add(self, bbox):
         self._bboxes.append(bbox)
@@ -49,6 +62,14 @@ class Cluster():
     def _intersection(self, bbox, top, bottom):
         bbox_top, bbox_bottom = min_max(bbox[:,1])
         return max(min([bbox_bottom, bottom]) - max([bbox_top, top]), 0) 
+    
+    def get_bounding_box(self):
+        """
+        Get a bounding box around the elements in this cluster
+        """
+        ymin, ymax = min_max(self.bboxes[:,:,1])
+        xmin, xmax = min_max(self.bboxes[:,:,0])
+        return Rectangle(Point(xmin, ymin), Point(xmax, ymax))
 
     def __len__(self):
         return len(self._bboxes)
@@ -60,7 +81,7 @@ class Cluster():
         yield from self._bboxes      
 
     def __repr__(self):
-        return f'Cluster({self.top}, {self.bottom})'
+        return f'Cluster({self.interval})'
 
 
 class ClusterVerticalInterval():
@@ -101,7 +122,7 @@ class ClusterVerticalInterval():
             else:
                 clusters.append(Cluster(bbox))
                 
-        return clusters        
+        return sorted(clusters, key=lambda x: x.interval[0])      
 
     @staticmethod
     def _interval_intersection(inter1, inter2):

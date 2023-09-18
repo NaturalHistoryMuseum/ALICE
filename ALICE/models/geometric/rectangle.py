@@ -24,6 +24,20 @@ class Rectangle:
     def xx(self):
         return [self.top_left[0], self.bottom_right[0]]
     
+    @property
+    def width(self):
+        return self.bottom_right[0] - self.top_left[0]
+    
+    @property
+    def height(self):
+        return self.bottom_right[1] - self.top_left[1]
+
+    @property
+    def vertices(self):
+        top_right = Point(self.bottom_right[0], self.top_left[1])
+        bottom_left = Point(self.top_left[0], self.bottom_right[1])
+        return [self.top_left, top_right, self.bottom_right, bottom_left] 
+        
     @classmethod
     def from_numpy(cls, arr: np.array):
         """
@@ -34,10 +48,7 @@ class Rectangle:
         return cls(tl, br)
     
     def _to_polygon(self):
-        top_right = Point(self.bottom_right[0], self.top_left[1])
-        bottom_left = Point(self.top_left[0], self.bottom_right[1])
-        corners = points_to_numpy([self.top_left, top_right, self.bottom_right, bottom_left])
-        return Polygon(corners)
+        return Polygon(points_to_numpy(self.vertices))
 
     def as_numpy(self):        
         return points_to_numpy([self.top_left, self.bottom_right])

@@ -1,145 +1,113 @@
 import numpy as np
-import imutils
 from scipy.stats import mode
+from typing import List
+import cv2
+from collections import namedtuple 
 
 from alice.config import logger
-from alice.utils import min_max
-from alice.models.text import TextDetection
-from alice.models.labels import LabelValid
+from alice.models.text import TextLineSegmentation, TextAlignment
+from alice.models.labels.crop import CropLabels
 
+
+
+QuartetResults = namedtuple('QuartetResults', ['labels', 'lines', 'composite'])
+
+
+    
 class LabelQuartet:
     """
     The four labels
     """
+
     def __init__(self):
         self._labels = []
         
     def add_label(self, label):
         self._labels.append(label)
-
-    def get_cropped_labels(self):
-        max_shortest_edge, max_longest_edge = self.get_dimensions()
-        first_landscape = 0
-        cropped = {}
-        for i, label in enumerate(self._labels):
-            if not label.is_valid(): continue
-
-            cropped_image = label.crop(max_shortest_edge, max_longest_edge)
-            h, w = cropped_image.shape[:2]
-            is_landscape = w > h
-            # Capture the first landscape label - we'll use this as 
-            # the base to rotate to            
-            if not first_landscape and is_landscape:
-                first_landscape = i
-
-            cropped[i] = label.crop(max_shortest_edge, max_longest_edge)
-
-        # Rotate all images to the first landscape one
-        rotated = {}
-        for i in range(len(self._labels)):
-            if not i in cropped: continue
-            rotation = (i - first_landscape) * 90
-            rotated[i] = imutils.rotate_bound(cropped[i], rotation)
-
-        return rotated
-
-    def count_valid(self):
-        return len(list(self.iter_valid()))
-    
-    def iter_valid(self):
-        for label in self._labels:
-            if label.is_valid():
-                yield label
-
-    def _get_dimensions_min_max(self):
-        dimensions = np.array([
-            (label.quad.x_length, label.quad.y_length) for label in self.iter_valid()
-        ])
-        return np.array([min_max(d) for d in dimensions]) 
+            
+    def process_labels(self):
+        cropped_labels = CropLabels(self._labels).crop()
         
-    def get_dimensions(self):
-        """
-        Get edge dimensions for all labels in the view
-        """
-        min_maxes = self._get_dimensions_min_max()
-        min_maxes = self.validate_shape_homogeneity(min_maxes)
-        return np.max(min_maxes[:,0]), np.max(min_maxes[:,1])        
+        # FIXME: We can add another similarity comparison here??
+        
+        logger.info('Quartet has %s cropped labels for text detection', len(cropped_labels))
+        for i, cropped_label in enumerate(cropped_labels):
+            logger.debug_image(cropped_label, f'cropped-{i}')        
+        
+        segmentations = [TextLineSegmentation(cropped) for cropped in cropped_labels]
+        n = [len(segm) for segm in segmentations]
+        modal = mode(n)            
+        segmentations = self._validate_textlines_per_label(segmentations, modal.mode)        
+        composite_lines = self._get_composite_lines(segmentations,  modal.mode)
+        composite_label = self._merge_composites(composite_lines)              
+        
+        return QuartetResults(cropped_labels, composite_lines, composite_label)
+        
+    def _merge_composites(self, composite_lines):
+        shape = np.array([comp.shape[:2] for comp in composite_lines])
+        # Height is the sum of all the composites; width just the max
+        height = np.sum(shape[:,0])
+        width = np.max(shape[:,1])
+        
+        merged = np.full((height, width, 3), (255,255,255), dtype=np.uint8)
 
-    def validate_shape_homogeneity(self, min_maxes):
-
-        if len(min_maxes) <= 1:
-            return min_maxes
+        y = 0
+        for composite in composite_lines:
+            filled = self._fill_whitespace(composite)
+            h, w = filled.shape[:2]
+            x = 0
+            # Slice the filled composite into the image
+            merged[y:y+h, x:x+w] = filled
+            y+=h
             
-        if len(min_maxes) == 2:
-            outliers_mask = self._validate_shape_difference(min_maxes)
-        else:
-            outliers_mask = self._validate_shape_deviation(min_maxes)
-            
-        # Mark these labels as invalid so they won't be included in the merge
-        for i, label in enumerate(self.iter_valid()):
-            if not outliers_mask[i]:
-                logger.info(f"Label {i} is not within normal range of other labels ")
-                logger.info('Min Max: %s', min_maxes)     
-                logger.debug_image(label.visualise(), f'label-{i}-shape-outlier')                        
-                label.set_valid(LabelValid.INVALID_SHAPE)
-            
-        # Mask the min maxes value, so outlines won't be used in dimension calculations 
-        return min_maxes[outliers_mask]              
-
-    def _validate_shape_difference(self, min_maxes):
+        return merged
+        
+    @staticmethod
+    def _fill_whitespace(image):
         """
-        Validate shape lengths are not two disimilar from each other
-        Used for validating shapes when we just have two labels 
+        Fill whitespace (from warping images) with most mean background colour
         """
-        min_diff = np.mean(min_maxes) / 4
-        # Calculate the maxium different along the edges
-        diff = np.max(np.diff(min_maxes, axis=1))
-        if diff > min_diff:
-            # Create a mask where True is set to the highest value
-            max_value = np.max(min_maxes[:, 1])
-            mask = min_maxes[:, 1] == max_value
-        else:
-            # Create an array of True True so we keep both
-            mask = np.array([True] * 2)
-        return mask
-            
-    def _validate_shape_deviation(self, min_maxes):
+        # FIXME: REMOVE??
+        grey = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        # Create whiteapce mask for all pixels above 250
+        whitespace_mask = grey > 240
+        # And mask all text (to esclude from background colour calc)
+        text_mask = grey > 200
+        background_mask = ~whitespace_mask & text_mask
+        # Get mean colour outside of text & whitespace
+        colour = cv2.mean(image, mask=background_mask.astype(np.uint8))[:3]
+        # And fill the whitespace
+        image[whitespace_mask] = colour
+        return image        
+        
+    @staticmethod
+    def _validate_textlines_per_label(segmentations, mode: int):
         """
-        Validate the deviations in shape, and remove outliers 
+        Filter any textlines with count not equalling the mode - cannot be used as we don't
+        know which line is which 
         """
-        # Loop through the min max columns, checking they are within accepted deviations
-        outliers = np.array([self._get_outliers(data) for data in min_maxes.T])
-        # Combine both array of outliers using logical and into an outliers_mask
-        return np.logical_and(outliers[0], outliers[1])    
+        norm_segmentations = [segm for segm in segmentations if len(segm) == mode]
+        
+        if len(norm_segmentations) != len(segmentations):
+            logger.info("Not all labels have the same line count (mode %s). %s of %s labels will be used", mode, len(segmentations), len(norm_segmentations))
+        return norm_segmentations
     
-    def _get_outliers(self, data):
-        # Calculate median deviation
-        median = np.median(data)
-        # calculate median absolute deviation
-        deviation = np.sqrt((data - median)**2)
-        max_deviation = np.mean(data) / len(data)
-        # FIXME: Why is one of the labels here being disallowed??
-        # print(max_deviation)
-        # print(deviation)
-        # print(deviation < max_deviation)
-        # re sub for corner label
-        return deviation < max_deviation   
-    
-    def get_labels(self):
-        # Return named tuples - orig, warped
-        cropped_labels = self.get_cropped_labels()          
-        labels_text = []
-        for cropped_label in cropped_labels.values():
-            labels_text.append(TextDetection(cropped_label))
+    def _get_composite_lines(self, segmentations: List[TextLineSegmentation], mode: int) -> list:
+        """
+        Loop through the lines, getting them all from the different segmentations, aligning them and retrieveing 
+        The compound
+        """
+        composites = []
+        for line_index in range(mode):
+            lines = [segm.text_lines[line_index] for segm in segmentations]
+            # FIXME: Do we want to debug each line? This is the place to do it
+            alignment = TextAlignment(lines)
+            composites.append(alignment.composite)
+        return composites       
+        
             
-        modal = mode([len(label_text) for label_text in labels_text]) 
-        self._validate_num_textlines_per_label(labels_text, modal.mode) 
-                    
-    def _validate_num_textlines_per_label(labels_text, mode):
-        for label_text in labels_text:
-            if len(label_text) != mode:
-                logger.info("Number of text lines %s does not match mode %s - recalculating clusters", len(label_text), mode)
-                label_text.recalculate_clusters(mode)
+        
+
             
             
             

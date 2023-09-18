@@ -16,6 +16,7 @@ MAX_NUMBER_OF_LABELS = 6
 ROOT_DIR = Path(__file__).parent.parent.resolve()
 DATA_DIR = ROOT_DIR / 'data'
 TEST_DIR = ROOT_DIR / 'test'
+TEST_IMAGE_DIR = TEST_DIR / 'images'
 
 ASSETS_DIR = DATA_DIR / 'assets'
 MODEL_DIR = DATA_DIR / 'models'

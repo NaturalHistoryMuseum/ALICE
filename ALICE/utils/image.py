@@ -25,3 +25,11 @@ def resize_image(image, max_width, max_height):
 
 def save_image(image, path: Path):
     cv2.imwrite(str(path), image) 
+    
+def overlay_image(image1, image2):
+    """
+    Overlay an image over another with 50% opacity
+    """
+    overlay = image1.copy()    
+    opacity = 0.5
+    return cv2.addWeighted(image2, opacity, overlay, 1 - opacity, 0, overlay)    
