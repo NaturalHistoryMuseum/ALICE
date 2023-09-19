@@ -20,34 +20,52 @@ class CropLabels:
         cropped_labels = self._crop()
         rotated = self._rotate(cropped_labels)
         return rotated
-        
-    def _crop(self):        
-        
+ 
+    def _crop(self):
+        """
+        Crop the the label
+        This also checks that the label longest/shortest edge follows the same pattern
+        If a box has an odd position, the nearest corner can shift between labels
+        which then throws off the landscape alignment in _rotate() 
+        """
+        edges = ['a_b', 'd_a']
+        first_label_lengths = np.array([self._labels[0].quad.edges[e].length for e in edges])
+        # Switch between a_b & d_a for longest length
+        edge_switch = np.argmax(first_label_lengths)
         max_shortest_edge, max_longest_edge = self._validate_dimensions()        
         cropped = []
         for i, label in enumerate(self._labels):
-            if not label.is_valid(): continue
-            cropped.append(
-                (i, label.crop(max_shortest_edge, max_longest_edge))
-            )
-        # Us an ordered dict so order is retained for rotation  
+
+            if label.is_valid():
+                edge_lengths = np.array([label.quad.edges[e].length for e in edges])
+                cropped_label = label.crop(max_shortest_edge, max_longest_edge)
+                if np.argmax(edge_lengths) != edge_switch:
+                    # Label does not have the expected long edge/short edge, so lets rotate it 90
+                    cropped_label = imutils.rotate_bound(cropped_label, 90)
+    
+                cropped.append((i, cropped_label))
+                
+            edge_switch ^= 1
+            
+        # Use an ordered dict so order is retained for rotation  
         return OrderedDict(cropped)
             
     def _rotate(self, cropped_labels):
         first_landscape = self._get_first_landscape(cropped_labels)
-        # Preserve order, but we don't care aboue actual label index positions 
+        # Preserve order, but we don't care about actual label index positions 
         rotated = []
         for i in range(self.num_labels):
             if not i in cropped_labels: continue
-            # If we don't have a first_landscape defined, just rotate all portair images 90
-            if first_landscape:
+            # If we don't have a first_landscape defined, just rotate all portrait images 90
+            if first_landscape >= 0:
                 rotation = (i - first_landscape) * 90
             elif not self._is_landscape(cropped_labels[i]):
                 rotation = -90
             else:
                 rotation = 0
-                
-            rotated.append(imutils.rotate_bound(cropped_labels[i], rotation))
+
+            rotated_label = imutils.rotate_bound(cropped_labels[i], rotation)
+            rotated.append(rotated_label)
 
         return rotated 
     
@@ -61,6 +79,8 @@ class CropLabels:
         for i, cropped in cropped_labels.items():
             if self._is_landscape(cropped):
                 return i
+        # No landscape images detected
+        return -1
 
     def _get_label_dimensions(self):
         dimensions = np.array([
@@ -73,6 +93,7 @@ class CropLabels:
         # We only have one label's dimensions - so cannot compare to validate
         if len(dimensions) > 1:
             dimensions = self._validate_dimensions_shape(dimensions)
+            
         return np.max(dimensions[:,0]), np.max(dimensions[:,1])   
     
     def _validate_dimensions_shape(self, dimensions):    

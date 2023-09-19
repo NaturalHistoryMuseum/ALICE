@@ -39,7 +39,7 @@ class LabelQuartet:
         modal = mode(n)            
         segmentations = self._validate_textlines_per_label(segmentations, modal.mode)        
         composite_lines = self._get_composite_lines(segmentations,  modal.mode)
-        composite_label = self._merge_composites(composite_lines)              
+        composite_label = self._merge_composites(composite_lines) if composite_lines else None              
         
         return QuartetResults(cropped_labels, composite_lines, composite_label)
         

@@ -81,13 +81,7 @@ class Specimen:
                 lower_labels = list(view.labels.keys())[1:]
                 for lower_label in lower_labels:
                     view.labels[lower_label].set_valid(LabelValid.NONDETECTED_LABELS) 
-                    
-    def filename_parse_image_idx(path:Path):
-            
-        m = re_filename.search(path.stem)
-        return int(m.group('image_id'))                        
-                
-        
+
 if __name__ == "__main__":
 
     # logger.set_specimen_id('011250151')
@@ -100,8 +94,8 @@ if __name__ == "__main__":
     
     # specimen_id = '011250151'    
     # paths = [PROCESSING_IMAGE_DIR / f'011250151_additional({i}).jpg' for i in range(1,5)]
-    # FIXME: specimen_id = '011250151'   
-    specimen_id = 'Tri434015'    
+    specimen_id = '011250151'   
+    # specimen_id = 'Tri434015'    
 
     paths = [p.resolve() for p in Path(PROCESSING_IMAGE_DIR).glob(f'{specimen_id}*.*') if p.suffix.lower() in {".jpg", ".jpeg"}] 
     specimen = Specimen(specimen_id, paths)
