@@ -55,6 +55,7 @@ class Specimen:
         all_results = {}
         for level, quartet in quartets.items(): 
             logger.info('Processing quartet level %s', level)
+            logger.info('Quartet %s: has %s cropped labels for text detection', level, len(quartet._labels))
             
             results = quartet.process_labels()
             
@@ -66,8 +67,11 @@ class Specimen:
             logger.info('Quartet %s: %s text lines detected', level, len(results.lines))
             for i, lines in enumerate(results.lines):
                 logger.debug_image(lines, f'lines-{level}-{i}')              
-                
-            logger.debug_image(results.composite, f'composite-{level}') 
+        
+            if results.composite is None:      
+                logger.info('Quartet %s: no composite image', level)    
+            else:
+                logger.debug_image(results.composite, f'composite-{level}') 
             
             all_results[level] = results
 
@@ -76,7 +80,8 @@ class Specimen:
             
     @staticmethod
     def _validate_num_labels_per_view(views, mode):
-        for view in views:
+        for i, view in enumerate(views):
+            logger.info('View %s: %s labels', i, len(view.labels)) 
             if len(view.labels) != mode:
                 lower_labels = list(view.labels.keys())[1:]
                 for lower_label in lower_labels:
@@ -88,14 +93,14 @@ if __name__ == "__main__":
     # path = PROCESSING_IMAGE_DIR / '011250151_additional(1).JPG'    
     # view = SpecimenAngledView(path)    
     
-    # specimen_id = '011245996'
+    specimen_id = '011244568'
     
     # paths = [PROCESSING_IMAGE_DIR / f'011245996_additional_{i}.jpeg' for i in range(1,5)]
     
     # specimen_id = '011250151'    
     # paths = [PROCESSING_IMAGE_DIR / f'011250151_additional({i}).jpg' for i in range(1,5)]
-    specimen_id = '011250151'   
-    # specimen_id = 'Tri434015'    
+    # specimen_id = '011250151'   
+    # specimen_id = 'Tri434014'    
 
     paths = [p.resolve() for p in Path(PROCESSING_IMAGE_DIR).glob(f'{specimen_id}*.*') if p.suffix.lower() in {".jpg", ".jpeg"}] 
     specimen = Specimen(specimen_id, paths)

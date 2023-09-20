@@ -55,8 +55,9 @@ class ClusterBoundingBox(Base):
         
         # Add some default padding
         miny, maxy = min_max(np.array(yy))
-        if miny > 2: yy.append(miny-2)
-        if maxy < self.image_height-2: yy.append(maxy+2)
+        default_pad = 3
+        if miny > default_pad: yy.append(miny-default_pad)
+        if maxy < self.image_height-default_pad: yy.append(maxy+default_pad)
                 
         for line_rect in all_line_rects:                
             intersection = cluster_bbox.intersection(line_rect)

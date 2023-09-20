@@ -2,11 +2,12 @@ import numpy as np
 import cv2
 from scipy.stats import zscore
 import scipy.cluster.hierarchy as hcluster
-
+from collections import OrderedDict
 
 from alice.craft import Craft
 from alice.utils import random_colour, min_max
-from alice.utils.cluster import ClusterVerticalInterval, Cluster
+from alice.models.cluster.vertical_interval import ClusterVerticalInterval
+from alice.models.cluster.bounding_box import ClusterBoundingBox
 from alice.models.base import Base
 from alice.models.geometric import Rectangle, Point
 from alice.models.text.line import TextLine
@@ -103,8 +104,7 @@ class TextLineSegmentation(Base):
         if heatmap_rects.any():
             return self.cluster(heatmap_rects)
         else:
-            raise(Exception('FIXME'))
-            # FIXME: Why are there none!?!?!?!Or is this fixed by other things???
+            logger.debug_image(self.heatmap, 'CRITICAL- No characters detected in heatmap')
             logger.warning("No characters detected in heatmap")
             return []
                

@@ -1,7 +1,7 @@
 import numpy as np
 from scipy.stats import mode
 from typing import List
-import cv2
+import itertools
 from collections import namedtuple 
 
 from alice.config import logger
@@ -29,17 +29,19 @@ class LabelQuartet:
         cropped_labels = CropLabels(self._labels).crop()
         
         # FIXME: We can add another similarity comparison here??
-        
-        logger.info('Quartet has %s cropped labels for text detection', len(cropped_labels))
+                
         for i, cropped_label in enumerate(cropped_labels):
             logger.debug_image(cropped_label, f'cropped-{i}')        
         
-        segmentations = [TextLineSegmentation(cropped) for cropped in cropped_labels]
-        n = [len(segm) for segm in segmentations]
-        modal = mode(n)            
-        segmentations = self._validate_textlines_per_label(segmentations, modal.mode)        
-        composite_lines = self._get_composite_lines(segmentations,  modal.mode)
-        composite_label = self._merge_composites(composite_lines) if composite_lines else None              
+        segmentations = [TextLineSegmentation(cropped) for cropped in cropped_labels]         
+        segmentations = self._validate_textlines_per_label(segmentations)
+        if segmentations:        
+            composite_lines = self._get_composite_lines(segmentations)
+            composite_label = self._merge_composites(composite_lines) if composite_lines else None
+        else:
+            logger.info('Segmented labels do not have matching line numbers - no composite lines or labels')
+            composite_lines = []   
+            composite_label = None    
         
         return QuartetResults(cropped_labels, composite_lines, composite_label)
         
@@ -62,25 +64,28 @@ class LabelQuartet:
         return merged
  
     @staticmethod
-    def _validate_textlines_per_label(segmentations, mode: int):
+    def _validate_textlines_per_label(segmentations):
         """
-        Filter any textlines with count not equalling the mode - cannot be used as we don't
-        know which line is which 
-        """
-        norm_segmentations = [segm for segm in segmentations if len(segm) == mode]
-        
+        Filter segmentations which don't have the keys present in all the others
+        """        
+        line_keys = set(itertools.chain(*[segm.text_lines.keys() for segm in segmentations]))
+        norm_segmentations = [segm for segm in segmentations if set(segm.text_lines.keys()) == line_keys]
         if len(norm_segmentations) != len(segmentations):
-            logger.info("Not all labels have the same line count (mode %s). %s of %s labels will be used", mode, len(segmentations), len(norm_segmentations))
-        return norm_segmentations
+            logger.info("Not all labels have matching lines. %s of %s labels will be used", len(norm_segmentations), len(segmentations))
+            
+        return norm_segmentations    
     
-    def _get_composite_lines(self, segmentations: List[TextLineSegmentation], mode: int) -> list:
+    @staticmethod
+    def _get_composite_lines(segmentations: List[TextLineSegmentation]) -> list:
         """
         Loop through the lines, getting them all from the different segmentations, aligning them and retrieveing 
         The compound
         """
         composites = []
-        for line_index in range(mode):
-            lines = [segm.text_lines[line_index] for segm in segmentations]
+        # We know they all have the same keys - so just grab the first
+        line_keys = segmentations[0].text_lines.keys()
+        for key in line_keys:
+            lines = [segm.text_lines[key] for segm in segmentations]
             # FIXME: Do we want to debug each line? This is the place to do it
             alignment = TextAlignment(lines)
             composites.append(alignment.composite)

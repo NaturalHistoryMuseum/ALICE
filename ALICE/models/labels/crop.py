@@ -29,7 +29,8 @@ class CropLabels:
         which then throws off the landscape alignment in _rotate() 
         """
         edges = ['a_b', 'd_a']
-        first_label_lengths = np.array([self._labels[0].quad.edges[e].length for e in edges])
+        valid_labels = [label for label in self._labels if label.is_valid()]
+        first_label_lengths = np.array([valid_labels[0].quad.edges[e].length for e in edges])
         # Switch between a_b & d_a for longest length
         edge_switch = np.argmax(first_label_lengths)
         max_shortest_edge, max_longest_edge = self._validate_dimensions()        
@@ -149,10 +150,5 @@ class CropLabels:
         median = np.median(data)
         # calculate median absolute deviation
         deviation = np.sqrt((data - median)**2)
-        max_deviation = np.mean(data) / len(data)
-        # FIXME: Why is one of the labels here being disallowed??
-        # print(max_deviation)
-        # print(deviation)
-        # print(deviation < max_deviation)
-        # re sub for corner label
+        max_deviation = np.max(data) / len(data)
         return deviation < max_deviation 
