@@ -19,7 +19,8 @@ class Keypoints():
 
     def _detect_and_compute(self, line):
         keypoints = self.detector.detect(line.image, None)        
-        keypoints = self._filter_keypoints(line.get_mask(), keypoints)     
+        # FIXME: We've changed the line, so need to check the mask
+        # keypoints = self._filter_keypoints(line.get_mask(), keypoints)     
         keypoints, desc = self.descriptor.compute(line.image, keypoints)        
         return keypoints, desc
 

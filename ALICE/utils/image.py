@@ -1,6 +1,7 @@
 import cv2
 from pathlib import Path
 
+
 def resize_image(image, max_width, max_height):
 
     # Get the original image dimensions

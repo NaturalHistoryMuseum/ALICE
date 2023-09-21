@@ -6,8 +6,7 @@ from collections import OrderedDict
 
 from alice.craft import Craft
 from alice.utils import random_colour, min_max
-from alice.models.cluster.vertical_interval import ClusterVerticalInterval
-from alice.models.cluster.bounding_box import ClusterBoundingBox
+from alice.utils.cluster import ClusterVerticalInterval
 from alice.models.base import Base
 from alice.models.geometric import Rectangle, Point
 from alice.models.text.line import TextLine
@@ -24,30 +23,27 @@ class TextLineSegmentation(Base):
         prediction = self.craft.detect(image)        
         super().__init__(prediction['image'])
         self.heatmap = prediction['resized_heatmap']
-        self.cluster_bboxes = self._get_cluster_bboxes()
-        self.text_lines = self._get_text_lines()        
+        self.cluster_bboxes = self._cluster_bboxes()
+        self.text_lines = self._get_text_lines()     
 
-    def _get_text_lines(self):
-        text_lines = OrderedDict()
-        
-        for i, bbox in self.cluster_bboxes.items():
-            if not bbox.is_valid: continue
-            text_lines[i] = bbox.textline()
+    def _cluster_bboxes(self):
+        heatmap_rects = self._get_heatmap_bboxes()   
+        if heatmap_rects.any():
+            return self.cluster(heatmap_rects)
+        else:
+            logger.debug_image(self.heatmap, 'CRITICAL- No characters detected in heatmap')
+            logger.warning("No characters detected in heatmap")
+            return []
+    
+    def _get_text_lines(self):     
+
+        text_lines = {}
+        for i, cluster in enumerate(self.cluster_bboxes):
+            if not cluster.is_valid(self.image_width): continue
+            masked_image = self._get_masked_image(i, self.cluster_bboxes) 
+            text_lines[i] = TextLine(cluster.bboxes, masked_image)
             
         return text_lines
-
-    def _get_cluster_bboxes(self):
-        
-        line_bboxes = self._get_heatmap_line_bboxes()
-        all_line_rects = [Rectangle.from_numpy(bbox) for bbox in line_bboxes]         
-        clusters = self._cluster_character_bboxes()
-
-        cluster_bboxes = {}
-        for i, cluster in enumerate(clusters):
-            masked_image = self._get_masked_image(i, clusters) 
-            cluster_bboxes[i] = ClusterBoundingBox(cluster, masked_image, all_line_rects)
-            
-        return cluster_bboxes
                   
     def _get_masked_image(self, i, clusters):
         """
@@ -82,14 +78,7 @@ class TextLineSegmentation(Base):
             
         return np.array(bboxes)         
     
-    def _get_heatmap_line_bboxes(self):
-        b, g, r = cv2.split(self.heatmap)
-        threshold = 120
-        # Use green channel - 'cooler' - more permissive with characters merged
-        binary_mask = g > threshold  
-        return self._mask_bboxes(binary_mask)
-        
-    def _get_heatmap_character_bboxes(self):
+    def _get_heatmap_bboxes(self):
         """
         Draw rectangles around points of heatmap density (representing letters)   
         """
@@ -98,15 +87,6 @@ class TextLineSegmentation(Base):
         # Use blue channel - 'hottest' so each letter will be separate
         binary_mask = b < threshold  
         return self._mask_bboxes(binary_mask)
-    
-    def _cluster_character_bboxes(self):
-        heatmap_rects = self._get_heatmap_character_bboxes()   
-        if heatmap_rects.any():
-            return self.cluster(heatmap_rects)
-        else:
-            logger.debug_image(self.heatmap, 'CRITICAL- No characters detected in heatmap')
-            logger.warning("No characters detected in heatmap")
-            return []
                
     def _visualise(self, image):
 

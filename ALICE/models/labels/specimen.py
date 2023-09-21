@@ -93,15 +93,15 @@ if __name__ == "__main__":
     # path = PROCESSING_IMAGE_DIR / '011250151_additional(1).JPG'    
     # view = SpecimenAngledView(path)    
     
-    specimen_id = '011244568'
+    # specimen_id = '011244568'
     
     # paths = [PROCESSING_IMAGE_DIR / f'011245996_additional_{i}.jpeg' for i in range(1,5)]
     
     # specimen_id = '011250151'    
     # paths = [PROCESSING_IMAGE_DIR / f'011250151_additional({i}).jpg' for i in range(1,5)]
     # specimen_id = '011250151'   
-    # specimen_id = 'Tri434014'    
+    specimen_id = 'Tri434014'    
 
-    paths = [p.resolve() for p in Path(PROCESSING_IMAGE_DIR).glob(f'{specimen_id}*.*') if p.suffix.lower() in {".jpg", ".jpeg"}] 
+    paths = [p.resolve() for p in PROCESSING_IMAGE_DIR.glob(f'{specimen_id}*.*') if p.suffix.lower() in {".jpg", ".jpeg"}] 
     specimen = Specimen(specimen_id, paths)
     labels = specimen.process()

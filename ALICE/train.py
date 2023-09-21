@@ -3,7 +3,6 @@ from detectron2.engine import DefaultTrainer
 from detectron2.data.datasets import register_coco_instances
 from detectron2.config import get_cfg
 from detectron2 import model_zoo
-import typer
 import json
 import os
 
