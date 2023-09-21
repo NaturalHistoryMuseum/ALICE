@@ -55,12 +55,18 @@ class TextAlignment():
     def _get_reference_image(self, lines_keypoints):
         """
         Select the best reference image - calculate the hull around all of the keypoints
-        The one with the largest hull is the best reference image
+        The one with the largest hull is the best reference image & the most characters
         """
         # Rather than calculating the area ratio based on image size
         # Just use area - so larger images are preferred
-        keypoint_area = [kp.area for kp in lines_keypoints]
-        return np.argmax(np.array(keypoint_area))
+
+        # Zip lines and keypoints together
+        lines_kps = zip(self.lines, lines_keypoints)        
+        line_areas = np.array([(len(line.bboxes), kp.area) for line, kp in lines_kps])
+
+        # Order line areas so largest area with most char bboxes is at the top
+        sorted_idx = np.lexsort((-line_areas[:, 1], -line_areas[:, 0]))
+        return sorted_idx[0]
 
     def _match_descriptors(self, desc, ref_desc):
         matcher = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
@@ -108,3 +114,8 @@ class TextAlignment():
         # And fill the whitespace
         image[whitespace_mask] = colour
         return image      
+
+
+
+# for i, lines in composite._group_lines(segmentations):
+#     alignment = TextAlignment(lines)
