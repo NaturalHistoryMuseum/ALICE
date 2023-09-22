@@ -9,6 +9,7 @@ DEBUG = os.getenv('DEBUG') or 1
 INVALID_LABEL_SHAPE = -1
 
 # Maximum number of labels to look at per image.
+# FIXME: I'm not foing anything with this???
 MAX_NUMBER_OF_LABELS = 6
 
 ###### Paths #######

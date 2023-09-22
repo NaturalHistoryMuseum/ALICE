@@ -16,8 +16,8 @@ class Composite:
         composites = []
         for i, lines in self._group_lines(segmentations):
             alignment = TextAlignment(lines)
-            # for j, transformed_image in enumerate(alignment.transformed_images):
-            #     logger.debug_image(transformed_image, f'tranformed-{i}-{j}')                 
+            for j, transformed_image in enumerate(alignment.transformed_images):
+                logger.debug_image(transformed_image, f'warped-line-{i}-{j}')                 
             composites.append(alignment.composite)
         return composites
         
@@ -31,6 +31,8 @@ class Composite:
             
             
     def create_label(self) -> NDArray:
+        if not self.composite_lines: 
+            return None
         shape = np.array([line.shape[:2] for line in self.composite_lines])
         # Height is the sum of all the composites; width just the max
         height = np.sum(shape[:,0])

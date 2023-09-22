@@ -100,7 +100,7 @@ if __name__ == "__main__":
     # specimen_id = '011250151'    
     # paths = [PROCESSING_IMAGE_DIR / f'011250151_additional({i}).jpg' for i in range(1,5)]
     # specimen_id = '011250151'   
-    specimen_id = 'Tri434014'    
+    specimen_id = '013638567'    
 
     paths = [p.resolve() for p in PROCESSING_IMAGE_DIR.glob(f'{specimen_id}*.*') if p.suffix.lower() in {".jpg", ".jpeg"}] 
     specimen = Specimen(specimen_id, paths)

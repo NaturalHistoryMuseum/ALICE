@@ -5,6 +5,7 @@ from shapely import LineString
 import cv2
 from typing import List
 from enum import Enum
+import sympy
 
 from alice.utils import iter_list_from_value, pairwise, min_max
 from alice.utils.geometry import calculate_angle, order_points, points_to_numpy
@@ -54,11 +55,27 @@ class Quadrilateral(Base):
         """
         Closest point is the bottom corner nearest the center point of the image
         """
-        center = round(self.image_width / 2)
+
         vertices = np.array(vertices)
+        # Get the two bottom most corners
         bottom_corners = vertices[np.argpartition(vertices[:, 1], -2)[-2:]]
-        x_offset_from_center = np.abs(bottom_corners[:, 0] - center)
-        closest_point = bottom_corners[np.argmin(x_offset_from_center)]
+        
+        x_dists = []
+        # Calculate the horizontal distance between the two points, and 
+        # the centroid of the tringle of the other three points
+        # We want the point with the smallest x dist (the one sitting 
+        # central to the other points, rather than to one side
+        for bottom_corner in bottom_corners:
+            # Get the other corners
+            others = vertices[np.any(vertices != bottom_corner, axis=1)]
+            # and turn them into a triangle
+            triangle = sympy.Triangle(*[sympy.Point(*v) for v in others])
+            centroid = sympy.N(triangle.centroid)
+            # horizontal distance to triangle centroid
+            x_dists.append(abs(centroid.x - bottom_corner[0]))
+
+        x_dists = np.array(x_dists)
+        closest_point = bottom_corners[np.argmin(x_dists)]                
         return Point(*closest_point)
 
     def get_corner_angles(self):

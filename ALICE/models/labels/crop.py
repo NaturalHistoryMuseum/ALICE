@@ -28,26 +28,12 @@ class CropLabels:
         If a box has an odd position, the nearest corner can shift between labels
         which then throws off the landscape alignment in _rotate() 
         """
-        edges = ['a_b', 'd_a']
-        valid_labels = [label for label in self._labels if label.is_valid()]
-        first_label_lengths = np.array([valid_labels[0].quad.edges[e].length for e in edges])
-        # Switch between a_b & d_a for longest length
-        edge_switch = np.argmax(first_label_lengths)
         max_shortest_edge, max_longest_edge = self._validate_dimensions()        
         cropped = []
         for i, label in enumerate(self._labels):
-
-            if label.is_valid():
-                edge_lengths = np.array([label.quad.edges[e].length for e in edges])
-                cropped_label = label.crop(max_shortest_edge, max_longest_edge)
-                if np.argmax(edge_lengths) != edge_switch:
-                    # Label does not have the expected long edge/short edge, so lets rotate it 90
-                    cropped_label = imutils.rotate_bound(cropped_label, 90)
-    
-                cropped.append((i, cropped_label))
-                
-            edge_switch ^= 1
-            
+            if label.is_valid():        
+                cropped_label = label.crop(max_shortest_edge, max_longest_edge)    
+                cropped.append((i, cropped_label))                            
         # Use an ordered dict so order is retained for rotation  
         return OrderedDict(cropped)
             

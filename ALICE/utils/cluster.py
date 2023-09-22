@@ -12,7 +12,7 @@ from alice.models.geometric import Rectangle, Point
 class Cluster():
     
     # If the cluster width isn't more than 50% of the image, it's invalid
-    min_width_ratio = 0.4
+    min_width_ratio = 0.3
     # If cluster has less than 6 bboxes, it's invalid
     min_bbox_num = 4
 
