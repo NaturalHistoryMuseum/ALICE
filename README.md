@@ -1,5 +1,17 @@
 # ALICE Software
 
+
+### Installation
+
+pip install -r requirements
+
+#### Installation errors
+
+###### Pytorhc is not installed.
+
+Make sure wheel is installed and pip >= 23.2.1 before running pip install -r requirements
+
+
 Code to extract labels from pinned specimen images.
 
 Aims:

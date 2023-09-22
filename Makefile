@@ -6,5 +6,5 @@ sync:
 	rsync -auv . $(sync_dir)  --exclude='.git/' --exclude='.venv/' --exclude='archive/' --exclude='*.egg-info/' --exclude='.DS_Store' --exclude='mask_rcnn_coco.h5' --exclude='*.pyc'
 
 install: 
-	pip install torch==2.0.1 && pip install -r requirements.txt
+	pip install -r requirements.txt && pip install git+https://github.com/facebookresearch/detectron2.git@ff53992b1985b63bd3262b5a36167098e3dada02
 
