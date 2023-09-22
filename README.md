@@ -1,26 +1,46 @@
-# ALICE
-## Angled Label Image Capture and Extraction
-
-![An example of some labels extracted from an image of a pinned insect.](https://github.com/NaturalHistoryMuseum/scalabel/blob/master/example.png)
-
-This project attempts to locate and extract images of labels attached to pinned insects. Given views of the specimen from multiple angles, it can isolate the labels.
-
-## Pipeline:
-1) **Calibration:** for each camera angle, image coordinates for a flat square in world space must be given in a CSV calibration file. This must fit the format in this [example CSV](data/cooper01/calibration/calibration.csv). The coordinates are translated to the centre of the image and scaled to fit.
-2) **Perspective:** using the corresponding points from the calibration step, transform each view of the specimen so that the 'square' is actually flat and oriented the same in each image.
-3) **Detection:**
-  a) _Features:_ detect points of interest in each image and find the features that are common to all views.
-  b) _Labels:_ cluster the feature points to find possible labels, and isolate these regions from the specimen images.
-4) **Align:** since the perspective correction of the images is only approximate, the cropped label images need to be aligned more closely in order to overlay them correctly. With labels aligned pixel-wise, a median filter is then applied per-pixel so that anything only visible in a minority of views (such as a pin) will no longer be visible.
-5) **Postprocess:** apply filters to improve contrast, etc.
+# ALICE Software
 
 
-## Installation
+### Installation
 
-### With pip
+pip install -r requirements
 
-- Run `pip install git+git://github.com/NaturalHistoryMuseum/ALICE`
+#### Installation errors
 
-## NB
+###### Pytorhc is not installed.
 
-This project is under active development and may not always work as expected or intended.
+Make sure wheel is installed and pip >= 23.2.1 before running pip install -r requirements
+
+
+Code to extract labels from pinned specimen images.
+
+Aims:
+1. Find boundaries of labels with [Mask R-CNN](https://github.com/matterport/Mask_RCNN).
+1. Approximate corners of labels.
+1. Transform labels to a 2d viewpoint.
+1. Align labels to a template.
+1. Merge labels.
+
+
+# Converting mask-rcnn region json files into coco/detectron JSON.
+
+```
+python scripts/convert.py data/label
+```
+
+The script will loop through child directories in data/label (data/label/var and data/label/train), read the via_region_data.json, and then output two files coco.json and detectron.json.
+
+Train uses coco.json. Detectron.json is legacy code, and will be removed in future versions. 
+
+via_region_data.json must be within the same directory as the images - e.g. data/label/var/via_region_data.json
+
+
+# ALICE Module
+
+Imports all use the alice module namespace - to activate for development:
+
+```
+python setup.py develop
+```
+
+

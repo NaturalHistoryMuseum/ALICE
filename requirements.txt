@@ -1,9 +1,28 @@
-numpy==1.14.3
-git+https://github.com/pathak22/pyflow.git
-pygco=0.0.16
-ipython==6.4.0
-matplotlib==2.2.2
-numba==0.38.0
-scikit-image==0.13.1
-pandas==0.23.0
-jupyter==1.0.0
+
+wheel==0.41.2
+imutils==0.5.4
+luigi==3.3.0
+# matplotlib==3.7.2
+# numpy==1.25.2
+# opencv-contrib-python==4.8.0.76
+# opencv-python==4.8.0.76
+# pandas==2.0.3
+# python-dotenv==0.21.0
+# pycocotools==2.0.7
+# pytesseract==0.3.10
+# PyYAML==6.0.1
+# scikit-image==0.21.0
+# scikit-learn==1.3.0
+# scipy==1.11.2
+# shapely==2.0.1
+# sympy==1.12
+# torch==2.0.1
+# torchvision==0.15.2
+# tqdm==4.66.1
+# typing_extensions==4.7.1
+# craft_text_detector @ git+https://github.com/benscott/craft-text-detector
+# detectron2 @ git+https://github.com/facebookresearch/detectron2.git@ff53992b1985b63bd3262b5a36167098e3dada02
+
+
+
+# git+https://github.com/facebookresearch/detectron2.git@d1e04565d3bec8719335b88be9e9b961bf3ec464
