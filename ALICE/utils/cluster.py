@@ -102,7 +102,7 @@ class Cluster():
             return False
         width_ratio = self.width / image_width
         if width_ratio < self.min_width_ratio:
-            logger.info('Invalid cluster - width %s below min width ration %s < %s', self.width, width_ratio, self.min_width_ratio)
+            logger.info('Invalid cluster - width %s below min width ratio %s < %s', self.width, width_ratio, self.min_width_ratio)
             return False        
         if self.has_xaxis_overlaps():
             logger.info('Invalid cluster - has xaxis overlaps')

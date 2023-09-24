@@ -5,9 +5,9 @@ import numpy as np
 from datetime import datetime
 
 from alice.config import (
-    PROCESSING_INPUT_DIR, 
-    PROCESSING_NUM_CAMERA_VIEWS, 
-    PROCESSING_OUTPUT_DIR,
+    INPUT_DIR, 
+    NUM_CAMERA_VIEWS, 
+    OUTPUT_DIR,
 )
 
 from alice.tasks.base import BaseTask
@@ -20,13 +20,13 @@ class SpecimenTask(BaseTask):
     specimen_id = luigi.Parameter()
     
     def glob_image_paths(self):
-        return [p.resolve() for p in Path(PROCESSING_INPUT_DIR).glob(f'{self.specimen_id}*.*') if p.suffix.lower() in {".jpg", ".jpeg"}]    
+        return [p.resolve() for p in Path(INPUT_DIR).glob(f'{self.specimen_id}*.*') if p.suffix.lower() in {".jpg", ".jpeg"}]    
 
     def requires(self):
         
         image_paths = self.glob_image_paths()        
         num_image_paths = len(image_paths)
-        if num_image_paths != PROCESSING_NUM_CAMERA_VIEWS:
+        if num_image_paths != NUM_CAMERA_VIEWS:
             raise IOError(f'Only {num_image_paths} images found for {self.specimen_id}')
         
         for path in image_paths:
@@ -67,7 +67,7 @@ class SpecimenTask(BaseTask):
             
 
     def output(self):     
-        return luigi.LocalTarget(PROCESSING_OUTPUT_DIR / self.specimen_id / f'{self.specimen_id}.log')
+        return luigi.LocalTarget(OUTPUT_DIR / self.specimen_id / f'{self.specimen_id}.log')
     
     @staticmethod
     def _format_time(timestamp):
