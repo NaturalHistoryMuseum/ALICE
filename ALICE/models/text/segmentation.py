@@ -89,9 +89,16 @@ class TextLineSegmentation(Base):
         return self._mask_bboxes(binary_mask)
                
     def _visualise(self, image):
-
-        for cluster_bbox in self.cluster_bboxes.values():
-            cluster_bbox.visualise(image)
+        
+        for cluster in self.cluster_bboxes:
+            colour = random_colour()
+            for bbox in cluster._bboxes:
+                pt1, pt2 = bbox
+                cv2.rectangle(image, pt1, pt2, colour, 1)  
+                
+        for line in self.text_lines.values():
+            for centroid in line.baseline_centroids:
+                cv2.circle(image, centroid, 2, (255, 255, 0), -1)          
 
         return image
     
