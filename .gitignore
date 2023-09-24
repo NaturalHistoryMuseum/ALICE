@@ -1,7 +1,14 @@
+# Ignore everything in the data directory
+data/*
+#except models
+!data/models
+
+.env
+build
+dist
 archive
 Plots/*
 CNN_Results/*
-Data/*
 *.png
 *.json
 *.npy
@@ -12,7 +19,6 @@ __pycache__/
 .DS_Store
 .vscode
 *.egg-info
-data/*
 .ipynb_checkpoints/
 .venv/
 .log

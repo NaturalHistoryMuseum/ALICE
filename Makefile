@@ -1,10 +1,36 @@
+include .env
+export
+
 SHELL := /bin/bash
 
-sync_dir := ~/Google\ Drive/My\ Drive/ALICE
+SYNC_DIR := ~/Google\ Drive/My\ Drive/ALICE
+CURRENT_DATE := $(shell date +%Y-%m-%d)
 
 sync: 
-	rsync -auv . $(sync_dir)  --exclude='.git/' --exclude='.venv/' --exclude='archive/' --exclude='*.egg-info/' --exclude='.DS_Store' --exclude='mask_rcnn_coco.h5' --exclude='*.pyc'
+	rsync -auv . $(SYNC_DIR)  --exclude='.git/' --exclude='.venv/' --exclude='archive/' --exclude='*.egg-info/' --exclude='.DS_Store' --exclude='mask_rcnn_coco.h5' --exclude='*.pyc'
 
 install: 
-	pip install -r requirements.txt && pip install git+https://github.com/facebookresearch/detectron2.git@ff53992b1985b63bd3262b5a36167098e3dada02
+pip install wheel pytorch & pip install -r requirements.txt
 
+bash:
+	@docker exec -i -t alice.luigi bash
+
+build:
+	@docker build -t naturalhistorymuseum/alice-luigi -t naturalhistorymuseum/alice-luigi:$(CURRENT_DATE) docker
+
+up:
+	@echo "Starting containers"
+	@docker compose up
+
+down:
+	@echo "Stopping & removing containers"
+	@docker compose down	
+
+process:
+	@docker exec -i -t alice.luigi process
+
+push:
+	@echo "Stopping & removing containers"
+	docker login -u bensc
+	docker tag alice.luigi naturalhistorymuseum/alice_luigi:latest
+	docker push naturalhistorymuseum/alice_luigi:latest
