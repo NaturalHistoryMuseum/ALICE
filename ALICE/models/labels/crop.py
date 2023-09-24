@@ -46,15 +46,24 @@ class CropLabels:
             # If we don't have a first_landscape defined, just rotate all portrait images 90
             if first_landscape >= 0:
                 rotation = (i - first_landscape) * 90
+                # Adjust the rotation if it will make a landscape image not landscape
+                if not self._is_valid_rotation(cropped_labels[i], rotation):
+                    rotation -= 90
             elif not self._is_landscape(cropped_labels[i]):
                 rotation = -90
             else:
-                rotation = 0
+                rotation = 0                    
 
             rotated_label = imutils.rotate_bound(cropped_labels[i], rotation)
             rotated.append(rotated_label)
 
         return rotated 
+    
+    def _is_valid_rotation(self, image, rotation):
+        if self._is_landscape(image):
+            return abs(rotation) in (0, 180)
+        else:
+            return abs(rotation) in (90, 270)
     
     def _is_landscape(self, image): 
         h, w = image.shape[:2]
