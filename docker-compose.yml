@@ -4,38 +4,29 @@ networks:
   alice-net:
 
 services:
-  scheduler:
-    container_name: alice.luigi2
+  alice:
+    container_name: luigi
+    hostname: alice
     build:
-      context: docker/luigi
+      context: .
+      dockerfile: ./docker/Dockerfile
     ports:
-      - "8082:8082"
-    volumes:
-      - .:/alice      
+      - "8082:8082"  
     environment:
-      LUIGI_TASK_HISTORY_DB_CONNECTION: postgres://luigi@db/dev
-      LUIGI_SCHEDULER_RECORD_TASK_HISTORY: "true"
+      LUIGI_TASK_HISTORY_DB_CONNECTION: postgresql://luigi@db/dev
+      LUIGI_SCHEDULER_RECORD_TASK_HISTORY: true
+      INPUT_DIR: '/input' 
+      OUTPUT_DIR: '/output'      
     depends_on:
       - db
     entrypoint:
       - ./wait-for-postgres.sh
       - db   
     networks:
-      alice-net:      
-
-  # worker:    
-  #   build:
-  #     dockerfile: docker/worker/Dockerfile
-  #     context: .
-  #   # hostname: worker
-  #   volumes:
-  #     - .:/alice
-  #   environment:
-  #     LUIGI_CORE_DEFAULT-SCHEDULER-URL: http://scheduler:8082
-  #   depends_on:
-  #     - scheduler
-  #   networks:
-  #     alice-net:
+      alice-net:  
+    volumes:
+      - ${INPUT_DIR}:/input
+      - ${OUTPUT_DIR}:/output          
 
   db:
     image: postgres:12.4
