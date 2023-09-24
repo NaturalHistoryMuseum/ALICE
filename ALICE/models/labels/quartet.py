@@ -19,28 +19,22 @@ class LabelQuartet:
     The four labels
     """
 
-    def __init__(self):
-        self._labels = []
+    def __init__(self, labels):
+        self._labels = labels
         
-    def add_label(self, label):
-        self._labels.append(label)
-            
+
     def process_labels(self):
-        cropped_labels = CropLabels(self._labels).crop()
-        
-        # FIXME: We can add another similarity comparison here??
-                
-        for i, cropped_label in enumerate(cropped_labels):
-            logger.debug_image(cropped_label, f'cropped-{i}')  
+        for i, label in enumerate(self._labels):
+            logger.debug_image(label, f'cropped-{i}')  
                                       
-        segmentations = [TextLineSegmentation(cropped) for cropped in cropped_labels]         
+        segmentations = [TextLineSegmentation(cropped) for cropped in self._labels]         
         segmentations = self._validate_textlines_per_label(segmentations)
         if segmentations:
             composite = Composite(segmentations)
-            results = QuartetResults(cropped_labels, composite.composite_lines, composite.create_label())
+            results = QuartetResults(self._labels, composite.composite_lines, composite.create_label())
         else:
             logger.info('Segmented labels do not have matching line numbers - no composite lines or labels')
-            results = QuartetResults(cropped_labels, [], None)
+            results = QuartetResults(self._labels, [], None)
 
         return results
         
