@@ -3,14 +3,19 @@ import logging
 from enum import Enum
 import os
 import cv2
+from dotenv import load_dotenv
 
-DEBUG = os.getenv('DEBUG') or 1
+# Load environment variables from the .env file
+load_dotenv()
 
-INVALID_LABEL_SHAPE = -1
+DEBUG = os.getenv('DEBUG', 1)
 
 # Maximum number of labels to look at per image.
-# FIXME: I'm not foing anything with this???
+# FIXME: I'm not foing anything with MAX_NUMBER_OF_LABELS
 MAX_NUMBER_OF_LABELS = 6
+
+IMAGE_BASE_WIDTH = 2048
+NUM_CAMERA_VIEWS = 4 
 
 ###### Paths #######
 
@@ -29,55 +34,34 @@ EVAL_DIR.mkdir(parents=True, exist_ok=True)
 CACHE_DIR = ROOT_DIR / '.cache'
 CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
-LOG_DIR = ROOT_DIR / 'log'
+LOG_DIR = DATA_DIR / 'log'
 LOG_DIR.mkdir(parents=True, exist_ok=True)
-
-# VISUALISATION_DIR = Path(DATA_DIR / 'visualisations')
-# VISUALISATION_DIR.mkdir(parents=True, exist_ok=True)
-
-OUTPUT_DATA_DIR = Path(DATA_DIR / 'output')
-OUTPUT_DATA_DIR.mkdir(parents=True, exist_ok=True)
 
 TRAIN_DATASET_PATH = DATA_DIR / 'label' / 'train'
 VAL_DATASET_PATH = DATA_DIR / 'label' / 'val'
 
-IMAGE_BASE_WIDTH = 2048
-PROCESSING_INPUT_DIR = Path(DATA_DIR / 'input')
-PROCESSING_IMAGE_DIR = Path(DATA_DIR / 'images')
-PROCESSING_OUTPUT_DIR = Path(DATA_DIR / 'output')
-PROCESSING_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-PROCESSING_NUM_CAMERA_VIEWS = 4 
+INPUT_DIR = Path(os.getenv("INPUT_DIR", Path(DATA_DIR / 'input')))
+OUTPUT_DIR = Path(os.getenv("OUTPUT_DIR", Path(DATA_DIR / 'output')))
+OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
-if IMAGE_BASE_WIDTH:
-    resized_dir = f'{IMAGE_BASE_WIDTH}x'
-    PROCESSING_IMAGE_DIR /= resized_dir
-
-PROCESSING_IMAGE_DIR.mkdir(parents=True, exist_ok=True)
+RESIZED_IMAGE_DIR = Path(DATA_DIR / 'resized')
+RESIZED_IMAGE_DIR.mkdir(parents=True, exist_ok=True)
 
 MODEL_DIR = Path(DATA_DIR / 'models')
 MODEL_DIR.mkdir(parents=True, exist_ok=True)
-
 
 
 ###### Train config #######
 
 NUM_EPOCHS = 1
 
-
-
-
-
-# # Directory to save logs and model checkpoints, if not provided
-# # through the command line argument --logs
-# DEFAULT_LOGS_DIR = DATA_DIR / "logs"
-
 ###### Logging #######
 
-# Define a custom log level named 'VERBOSE'
-DEBUG_IMAGE = 15
+# Define a custom log level
+LOG_LEVEL_DEBUG_IMAGE = 15
 
 # Add the custom log level to the logging module
-logging.addLevelName(DEBUG_IMAGE, 'DEBUG_IMAGE')
+logging.addLevelName(LOG_LEVEL_DEBUG_IMAGE, 'LOG_LEVEL_DEBUG_IMAGE')
 
 class DebugLogger(logging.Logger):
 
@@ -94,7 +78,7 @@ class DebugLogger(logging.Logger):
             self.critical(f"No specimen ID set in DebugLogger")
             return
             
-        if self.isEnabledFor(DEBUG_IMAGE):
+        if self.isEnabledFor(LOG_LEVEL_DEBUG_IMAGE):
             dir_path = LOG_DIR / self.specimen_id
             dir_path.mkdir(parents=True, exist_ok=True)
             file_name = f'{debug_code}.jpg'
@@ -109,8 +93,12 @@ class DebugLogger(logging.Logger):
 # logging.basicConfig(level=logging.NOTSET)        
 # Set up logging - inherit from luigi so we use the same interface
 logger = DebugLogger("luigi-interface")
-logger.setLevel(DEBUG_IMAGE)
 
+if DEBUG:
+    logger.setLevel(LOG_LEVEL_DEBUG_IMAGE)
+else:
+    logger.setLevel(logging.INFO)
+    
 # Set up file logging for errors and warnings
 file_handler = logging.FileHandler(LOG_DIR / 'error.log')
 file_handler.setFormatter(
