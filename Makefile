@@ -10,10 +10,10 @@ sync:
 	rsync -auv . $(SYNC_DIR)  --exclude='.git/' --exclude='.venv/' --exclude='archive/' --exclude='*.egg-info/' --exclude='.DS_Store' --exclude='mask_rcnn_coco.h5' --exclude='*.pyc'
 
 install: 
-pip install wheel pytorch & pip install -r requirements.txt
+	pip install wheel pytorch & pip install -r requirements.txt
 
 bash:
-	@docker exec -i -t alice.luigi bash
+	@docker exec -i -t luigi bash
 
 build:
 	@docker build -t naturalhistorymuseum/alice-luigi -t naturalhistorymuseum/alice-luigi:$(CURRENT_DATE) docker

@@ -8,6 +8,7 @@ RUN apt-get update && \
         build-essential \
         postgresql-client \
         git \
+        nano \
         ffmpeg \
         libsm6 \
         libxext6 \

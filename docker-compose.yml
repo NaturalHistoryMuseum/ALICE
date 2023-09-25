@@ -5,7 +5,7 @@ networks:
 
 services:
   alice:
-    container_name: luigi
+    container_name: alice.luigi
     hostname: alice
     build:
       context: .
