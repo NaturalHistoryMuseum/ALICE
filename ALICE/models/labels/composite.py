@@ -15,10 +15,14 @@ class Composite:
     def _get_composite_lines(self, segmentations: List[TextLineSegmentation]) -> List[NDArray]:
         composites = []
         for i, lines in self._group_lines(segmentations):
-            alignment = TextAlignment(lines)
-            for j, transformed_image in enumerate(alignment.transformed_images):
-                logger.debug_image(transformed_image, f'warped-line-{i}-{j}')                 
-            composites.append(alignment.composite)
+            # Filter out invalid lines
+            lines = [line for line in lines if line.is_valid]
+            # We have invalid lines, so check there are still lines ones these are removed
+            if lines:
+                alignment = TextAlignment(lines)
+                for j, transformed_image in enumerate(alignment.transformed_images):
+                    logger.debug_image(transformed_image, f'warped-line-{i}-{j}')                 
+                composites.append(alignment.composite)
         return composites
         
     @staticmethod
