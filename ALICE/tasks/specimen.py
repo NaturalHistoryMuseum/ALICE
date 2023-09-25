@@ -51,10 +51,13 @@ class SpecimenTask(BaseTask):
         
             log_file.write(f"{len(results)} levels of labels detected\n")   
         
-            for i, result in results.items():
+            for i, label in enumerate(results['labels']):
+                save_image(label, output_dir / f'label-{i}.jpg')
+        
+            for i, result in results['composites'].items():
                 labels = result.labels            
-                stacked_label = self._stack_labels(labels)
-                save_image(stacked_label, output_dir / f'labels-{i}.jpg')
+                # stacked_label = self._stack_labels(labels)
+                # save_image(stacked_label, output_dir / f'labels-{i}.jpg')
                 
                 if result.composite is None:
                     log_file.write(f"Level {i}:No composite\n")
@@ -90,4 +93,4 @@ class SpecimenTask(BaseTask):
         
     
 if __name__ == "__main__":
-    luigi.build([SpecimenTask(specimen_id='013638568', force=True)], local_scheduler=True) 
+    luigi.build([SpecimenTask(specimen_id='012509600', force=True)], local_scheduler=True) 
