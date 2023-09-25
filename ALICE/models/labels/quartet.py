@@ -2,7 +2,7 @@ import numpy as np
 from scipy.stats import mode
 from typing import List
 import itertools
-from collections import namedtuple 
+from collections import namedtuple, Counter 
 
 from alice.config import logger
 from alice.models.text import TextLineSegmentation, TextAlignment
@@ -42,9 +42,15 @@ class LabelQuartet:
     def _validate_textlines_per_label(segmentations):
         """
         Filter segmentations which don't have the keys present in all the others
-        """        
-        line_keys = set(itertools.chain(*[segm.text_lines.keys() for segm in segmentations]))
-        norm_segmentations = [segm for segm in segmentations if set(segm.text_lines.keys()) == line_keys]
+        """
+        # Get the most common keys across all segmenations 
+        line_keys = [frozenset(segm.text_lines.keys()) for segm in segmentations]
+        line_key_counts = Counter(line_keys)
+        most_common_keys = line_key_counts.most_common(1)[0][0]
+
+        # Only select the segmenations with the 
+        norm_segmentations = [segm for segm in segmentations if set(segm.text_lines.keys()) == most_common_keys]
+
         if len(norm_segmentations) != len(segmentations):
             logger.info("Not all labels have matching lines. %s of %s labels will be used", len(norm_segmentations), len(segmentations))
             
