@@ -9,7 +9,18 @@ from alice.utils import random_colour, min_max
 from alice.models.geometric import Rectangle
 
 
+class InvalidTextLine():
+    
+    """
+    Create invalid text line so order of lines can be preserved
+    """
+    is_valid = False
+    
+
 class TextLine():
+    
+    is_valid = True
+    
     def __init__(self, bboxes: List[Rectangle], image):
         self.orig_image = image.copy()
         self.height, self.width = self.orig_image.shape[:2]
