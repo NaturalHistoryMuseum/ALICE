@@ -74,7 +74,7 @@ def crop_image(image, padding=20):
     height, width = image.shape[:2]
 
     # Adjust padidng so we don't take too much of the image
-    padding = min([padding, 0.3*height, 0.3*width])
+    padding = min([padding, int(0.3*height), int(0.3*width)])
     
     # Crop padding from each edge
     left_crop = padding
