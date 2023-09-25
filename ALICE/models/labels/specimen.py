@@ -48,17 +48,7 @@ class Specimen:
         views = [AngledView(path, i)  for i, path in enumerate(self.paths)]
         return views
             
-    def get_label_quartets(self):
-        views = self.get_views()
-        
-        label_levels = self._group_cropped_labels_by_level(views)
-        
-        if not self._label_levels_are_similar_images(label_levels):
-            logger.info('Label images across levels are disimilar - regrouping by similarity')        
-            label_levels = self._regroup_labels_by_similarity(label_levels)
-        else:
-            logger.info('Label similarity check - passed.')  
-            
+    def get_label_quartets(self, label_levels):            
         quartets = []
         for i, labels in label_levels.items():
             # If we only have one label in the cluster, remove any with max edge < 150
@@ -73,12 +63,20 @@ class Specimen:
         return quartets
     
     def _group_cropped_labels_by_level(self, views):
+
         num_levels = max([len(view.labels) for view in views])
+        
         label_levels = {}
         for level in range(0, num_levels):
             # If a label doesn't exist at a particular level for a view, we create InvalidLabel()
             # So that order of labels will be preserved in the crop & rotate
-            label_levels[level] = CropLabels([view.labels.get(level, InvalidLabel()) for view in views]).crop() 
+            labels = [view.labels.get(level, InvalidLabel()) for view in views]
+            
+            # BUGFIX: Check we have some valid labels before continuing
+            has_valid = any([l.is_valid() for l in labels])
+            if has_valid:           
+                label_levels[level] = CropLabels(labels).crop() 
+                
         return label_levels 
     
     def _label_levels_are_similar_images(self, label_levels):
@@ -116,8 +114,19 @@ class Specimen:
         return clustered_images
         
     def process(self):
-        quartets = self.get_label_quartets()
-        all_results = {}
+        views = self.get_views()
+        label_levels = self._group_cropped_labels_by_level(views)        
+        if not self._label_levels_are_similar_images(label_levels):
+            logger.info('Label images across levels are disimilar - regrouping by similarity')        
+            label_levels = self._regroup_labels_by_similarity(label_levels)
+        else:
+            logger.info('Label similarity check - passed.') 
+             
+        quartets = self.get_label_quartets(label_levels)
+        all_results = {
+            'labels': list(itertools.chain(*label_levels.values())),
+            'composites': {}
+        }
         for level, quartet in enumerate(quartets): 
             logger.info('Processing quartet level %s', level)
             logger.info('Quartet %s: has %s cropped labels for text detection', level, len(quartet._labels))
@@ -138,7 +147,7 @@ class Specimen:
             else:
                 logger.debug_image(results.composite, f'composite-{level}') 
             
-            all_results[level] = results
+            all_results['composites'][level] = results
 
         return all_results
 
@@ -155,8 +164,8 @@ if __name__ == "__main__":
     # specimen_id = '011250151'    
     # paths = [RESIZED_IMAGE_DIR / f'011250151_additional({i}).jpg' for i in range(1,5)]
     # specimen_id = '011250151'   
-    specimen_id = '012509519'
-    specimen_id = 'Tri434015'        
+    # specimen_id = '012509519'
+    specimen_id = '012509600'        
     paths = [p.resolve() for p in RESIZED_IMAGE_DIR.glob(f'{specimen_id}*.*') if p.suffix.lower() in {".jpg", ".jpeg"}] 
     specimen = Specimen(specimen_id, paths)    
     labels = specimen.process()
