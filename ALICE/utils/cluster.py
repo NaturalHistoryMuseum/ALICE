@@ -142,7 +142,8 @@ class ClusterVerticalInterval():
 
     def __call__(self, bboxes: np.array):
         bboxes = self._sort_horizontally(bboxes)
-        bboxes = self._filter_outliers(bboxes)
+        if len(bboxes) > 1:
+            bboxes = self._filter_outliers(bboxes)
         return self._cluster(bboxes)        
 
     def _sort_horizontally(self, bboxes: np.array):
@@ -211,7 +212,7 @@ class ClusterVerticalInterval():
         z_scores = np.abs(zscore(bbox_heights))
         bboxes = bboxes[np.where(z_scores < threshold)[0]]  
 
-        # Filter any boxes with tiny areas - this can through off the intersection calculations
+        # Filter any boxes with tiny areas - this can throw off the intersection calculations
         bbox_areas = np.array([np.prod(np.diff(bbox, axis=0)) for bbox in bboxes])
         # Lower bound is 0.2 of the median - any box with a smaller area will be filtered out
         lower_bound = np.mean(bbox_areas) * 0.2
