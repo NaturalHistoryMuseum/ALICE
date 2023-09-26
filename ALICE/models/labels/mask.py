@@ -147,6 +147,8 @@ class LabelMasks(Base):
         This is used so text from higher labels isn't eroneously deetcted 
         """
         image = self.image.copy()
+        # FIXME: Test is this better??
+        return image
         higher_labels_mask = self.get_higher_labels_mask(label_index)
         kernel = np.ones((3, 3), np.uint8)
         # Lets dilate the mask a little to ensure it covers
