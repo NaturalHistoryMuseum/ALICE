@@ -13,7 +13,7 @@ install:
 	pip install wheel pytorch & pip install -r requirements.txt
 
 bash:
-	@docker exec -i -t luigi bash
+	@docker exec -i -t alice.luigi bash
 
 build:
 	@docker build -t naturalhistorymuseum/alice-luigi -t naturalhistorymuseum/alice-luigi:$(CURRENT_DATE) docker
@@ -29,8 +29,10 @@ down:
 process:
 	@docker exec -i -t alice.luigi process
 
+update:
+	@docker cp alice alice.luigi:/alice/alice	
+
 push:
-	@echo "Stopping & removing containers"
-	docker login -u bensc
-	docker tag alice.luigi naturalhistorymuseum/alice_luigi:latest
-	docker push naturalhistorymuseum/alice_luigi:latest
+	@echo "Pushing to docker hub"
+	@docker login -u bensc
+	@docker push naturalhistorymuseum/alice_luigi:latest
