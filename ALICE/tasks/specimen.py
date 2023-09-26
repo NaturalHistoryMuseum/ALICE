@@ -3,17 +3,22 @@ from pathlib import Path
 import time
 import numpy as np
 from datetime import datetime
+import shutil
 
 from alice.config import (
     INPUT_DIR, 
     NUM_CAMERA_VIEWS, 
     OUTPUT_DIR,
+    LOG_DIR
 )
 
 from alice.tasks.base import BaseTask
 from alice.tasks.image import ImageTask
 from alice.models.labels import Specimen
 from alice.utils.image import pad_image_to_width, save_image
+
+
+
     
 class SpecimenTask(BaseTask):
 
@@ -33,7 +38,6 @@ class SpecimenTask(BaseTask):
             yield ImageTask(path=path)
 
     def run(self):
-        
         output = Path(self.output().path)
         output_dir = output.parent
         output_dir.mkdir(parents=True, exist_ok=True)
@@ -92,5 +96,17 @@ class SpecimenTask(BaseTask):
         return stacked_label       
         
     
+@SpecimenTask.event_handler(luigi.Event.FAILURE)
+def on_specimen_task_error(task, exception):
+    output_dir = Path(task.output().path).parent
+    if output_dir.is_dir():
+        shutil.rmtree(output_dir)
+    error_log = output_dir.parent / f'{output_dir.stem}.error.log'
+    
+    with error_log.open('w') as f:
+        f.write(f"Time: {datetime.now()}\n")
+        f.write('Exception:')
+        f.write(str(exception))
+    
 if __name__ == "__main__":
-    luigi.build([SpecimenTask(specimen_id='012509600', force=True)], local_scheduler=True) 
+    luigi.build([SpecimenTask(specimen_id='014544308', force=True)], local_scheduler=True) 
