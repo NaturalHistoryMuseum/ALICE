@@ -6,6 +6,7 @@ networks:
 services:
   alice:
     container_name: alice.luigi
+    image: naturalhistorymuseum/alice_luigi
     hostname: alice
     build:
       context: .
