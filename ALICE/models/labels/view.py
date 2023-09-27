@@ -58,7 +58,7 @@ if __name__ == "__main__":
     
     # specimen_id = '011245996'
     
-    # paths = [PROCESSING_IMAGE_DIR / f'011245996_additional_{i}.jpeg' for i in range(1,5)]
+    # paths = [RE / f'011245996_additional_{i}.jpeg' for i in range(1,5)]
     
     # # paths = [PROCESSING_INPUT_DIR / f'Tri434014_additional_{i}.JPG' for i in range(1,5)]
     specimen_id = '011250151'

@@ -165,7 +165,7 @@ if __name__ == "__main__":
     # paths = [RESIZED_IMAGE_DIR / f'011250151_additional({i}).jpg' for i in range(1,5)]
     # specimen_id = '011250151'   
     # specimen_id = '012509519'
-    specimen_id = '012509600'        
+    specimen_id = '011246707'        
     paths = [p.resolve() for p in RESIZED_IMAGE_DIR.glob(f'{specimen_id}*.*') if p.suffix.lower() in {".jpg", ".jpeg"}] 
     specimen = Specimen(specimen_id, paths)    
     labels = specimen.process()
