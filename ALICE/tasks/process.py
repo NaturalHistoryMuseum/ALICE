@@ -60,8 +60,5 @@ class ProcessTask(BaseTask):
 
     
 if __name__ == "__main__":
-    # 012509422
-    # 012509579
-    
-    luigi.build([ProcessTask(specimen_id='012509703')], local_scheduler=True)
+    luigi.build([ProcessTask()], local_scheduler=True)
     
