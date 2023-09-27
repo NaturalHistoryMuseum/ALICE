@@ -9,7 +9,7 @@ from alice.utils import random_colour, min_max
 from alice.utils.cluster import ClusterVerticalInterval
 from alice.models.base import Base
 from alice.models.geometric import Rectangle, Point
-from alice.models.text.line import TextLine
+from alice.models.text.line import TextLine, InvalidTextLine
 from alice.config import logger
 
 
@@ -39,9 +39,12 @@ class TextLineSegmentation(Base):
 
         text_lines = {}
         for i, cluster in enumerate(self.cluster_bboxes):
-            if not cluster.is_valid(self.image_width): continue
-            masked_image = self._get_masked_image(i, self.cluster_bboxes) 
-            text_lines[i] = TextLine(cluster.bboxes, masked_image)
+            if cluster.is_valid(self.image_width):                 
+                masked_image = self._get_masked_image(i, self.cluster_bboxes) 
+                text_line = TextLine(cluster.bboxes, masked_image)
+            else:
+                text_line = InvalidTextLine()
+            text_lines[i] = text_line
             
         return text_lines
                   
@@ -89,9 +92,16 @@ class TextLineSegmentation(Base):
         return self._mask_bboxes(binary_mask)
                
     def _visualise(self, image):
-
-        for cluster_bbox in self.cluster_bboxes.values():
-            cluster_bbox.visualise(image)
+        
+        for cluster in self.cluster_bboxes:
+            colour = random_colour()
+            for bbox in cluster._bboxes:
+                pt1, pt2 = bbox
+                cv2.rectangle(image, pt1, pt2, colour, 1)  
+                
+        for line in self.text_lines.values():
+            for centroid in line.baseline_centroids:
+                cv2.circle(image, centroid, 2, (255, 255, 0), -1)          
 
         return image
     

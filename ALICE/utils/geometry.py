@@ -129,8 +129,8 @@ def calculate_line_slope_intercept(line: LineString):
     # Calculate the differences in y and x coordinates
     delta_y = y2 - y1
     delta_x = x2 - x1    
-    # Calculate the slope
-    m = delta_y / delta_x    
+    # Calculate the slope (with safe division by zero)
+    m = delta_y / delta_x if delta_x else 0    
     # Calculate the intercept
     b = y1 - m * x1
     return m, b

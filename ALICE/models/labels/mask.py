@@ -7,14 +7,17 @@ import scipy
 
 
 from alice.models.base import Base
-from alice.models.geometric import Point
-from alice.predict import visualise_mask_predictions, mask_predictor
+from alice.models.geometric.point import Point
+from alice.models.geometric.rectangle import Rectangle
+from alice.predict import mask_predictor
+from alice.visualise import visualise_mask_predictions
 from alice.config import logger
 
 class Mask(Base):
-    def __init__(self, mask: np.array, image):        
+    def __init__(self, mask: np.array, bbox: Rectangle, image: np.array):        
         super().__init__(image)
         self.mask = mask.astype(np.uint8)
+        self.bbox = bbox
 
     @property
     def y_midpoint(self):
@@ -100,10 +103,20 @@ class LabelMasks(Base):
         self._clean_obscured_masks()
         
     def _predictions_to_label_masks(self):
-        masks = self.predictions.get('instances').to("cpu").pred_masks.numpy()
-        masks = self.filter_small_masks(masks)    
-        label_masks = [Mask(m, self.image) for m in masks]
-        # Sort by mask y midpoint
+        
+        out = self.predictions.get('instances').to("cpu")
+        boxes = out.pred_boxes.tensor.numpy()
+        masks = out.pred_masks.numpy()
+        
+        label_masks = []        
+        for mask, box, in zip(masks, boxes):
+            if self.mask_area_is_too_small(mask): continue
+            # Convert flat box array to 2D
+            box = np.array([box[:2], box[2:]])            
+            rect = Rectangle.from_numpy(box)
+            label_masks.append(Mask(mask, rect, self.image))
+        
+        # FIXME: THIS DOES NOT WORK Sort by mask y midpoint
         label_masks.sort(key = attrgetter('y_midpoint'))        
         return label_masks
 
@@ -134,6 +147,8 @@ class LabelMasks(Base):
         This is used so text from higher labels isn't eroneously deetcted 
         """
         image = self.image.copy()
+        # FIXME: Test is this better??
+        return image
         higher_labels_mask = self.get_higher_labels_mask(label_index)
         kernel = np.ones((3, 3), np.uint8)
         # Lets dilate the mask a little to ensure it covers
@@ -142,8 +157,8 @@ class LabelMasks(Base):
         image[mask == 1] = [255, 255, 255]
         return image
 
-    def filter_small_masks(self, masks: np.array):
-        return [m for m in masks if np.count_nonzero(m) > self.min_mask_size]
+    def mask_area_is_too_small(self, mask: np.array):
+        return np.count_nonzero(mask) < self.min_mask_size
 
     def __len__(self):
         return len(self.label_masks)

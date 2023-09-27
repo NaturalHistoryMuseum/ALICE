@@ -7,7 +7,7 @@ from collections import OrderedDict
 from alice.models.base import Base
 from alice.models.labels import LabelMasks, Label
 from alice.log import init_log
-from alice.config import PROCESSING_IMAGE_DIR, logger
+from alice.config import RESIZED_IMAGE_DIR, logger
 
 
 class AngledView(Base):
@@ -64,7 +64,7 @@ if __name__ == "__main__":
     specimen_id = '011250151'
     
     # path = PROCESSING_IMAGE_DIR / f'Tri434014_additional_4.jpg'
-    path = PROCESSING_IMAGE_DIR / '011250151_additional(2).JPG'
+    path = RESIZED_IMAGE_DIR / '011250151_additional(2).JPG'
     init_log(specimen_id)
     view = AngledView(path, 1)
  

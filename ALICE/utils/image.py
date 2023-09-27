@@ -1,7 +1,8 @@
 import cv2
 import numpy as np
 from pathlib import Path
-
+import imagehash
+from PIL import Image
 
 def resize_image(image, max_width, max_height):
 
@@ -56,3 +57,31 @@ def pad_image_to_width(image, target_width, pad_color=(255, 255, 255)):
     padded_image[:, :current_width] = image
 
     return padded_image
+
+def compute_image_hash_similarity(image1:Image, image2:Image):
+    """
+    Compute hash similarity of two images
+    """
+    hash0 = imagehash.average_hash(image1)
+    hash1 = imagehash.average_hash(image2)
+    return hash0 - hash1
+
+def crop_image(image, padding=20):
+    """
+    Crop image all around with padding
+    """
+    
+    height, width = image.shape[:2]
+
+    # Adjust padidng so we don't take too much of the image
+    padding = min([padding, int(0.3*height), int(0.3*width)])
+    
+    # Crop padding from each edge
+    left_crop = padding
+    right_crop = width - padding
+    top_crop = padding
+    bottom_crop = height - padding
+
+    # Use array slicing to perform the cropping
+    cropped_image = image[top_crop:bottom_crop, left_crop:right_crop] 
+    return cropped_image

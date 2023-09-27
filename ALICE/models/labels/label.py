@@ -53,12 +53,22 @@ class Label(Base):
         return approx_best_fit_quadrilateral(polygon)  
     
     def _get_best_fit_polygon_quadrilateral(self):
-        vertices = self._get_best_fit_vertices()    
+        vertices = self._get_best_fit_vertices()   
+        if len(vertices) != 4:
+            logger.info("Best fit polygon did not produce 4 vertices.") 
+            return None
+                                        
         return Quadrilateral(vertices, self.image)    
         
     def _get_quadrilateral(self):
         
         quad = self._get_best_fit_polygon_quadrilateral()
+        
+        if not quad:
+            # If we don't have a valid quad, don't even try to correct it
+            self.valid = LabelValid.INVALID_QUADRILATERAL
+            return
+        
         self._visualisation = quad.visualise(self._visualisation)
             
         if quad.is_wellformed_label_shape():                                    
@@ -76,10 +86,10 @@ class Label(Base):
         # We use the original quad to guestimate from - not the corrected corner shape
         if quad.nearest_corner_is_good():
             logger.info("Guestimating quad from good nearest corner")            
-            projected_quad = self._project_quadrilateral_from_closest_edges(quad)    
-            self._visualisation = projected_quad.visualise(self._visualisation)         
-            if projected_quad.is_wellformed_label_shape(): 
-                return projected_quad
+            if projected_quad := self._project_quadrilateral_from_closest_edges(quad):    
+                self._visualisation = projected_quad.visualise(self._visualisation)         
+                if projected_quad.is_wellformed_label_shape(): 
+                    return projected_quad
                             
         self.valid = LabelValid.INVALID_QUADRILATERAL
         
@@ -189,8 +199,13 @@ class Label(Base):
         for adj_edge in adj_edge_lines:
             intersection = extend_line(adj_edge).intersection(new_edge)    
             new_vertices.append(Point.from_shapely(intersection))     
-            
-        return Quadrilateral(new_vertices, self.image, QuadMethod.CORNER_CORRECTED)
+        # Only create a quad, if the intersections have produced 4 corners
+        if len(new_vertices) == 4:
+            return Quadrilateral(new_vertices, self.image, QuadMethod.CORNER_CORRECTED)
+        else:
+            logger.info("Corrected corners quad only produced %s vertices. Cannot create quadrilateral.", len(new_vertices)) 
+                        
+        
             
     def _project_quadrilateral_from_closest_edges(self, quad):
         """
@@ -221,8 +236,12 @@ class Label(Base):
             for perpendicular_line in lines[1]:
                 if intersection := line.intersection(perpendicular_line):
                     new_vertices.append(Point.from_shapely(intersection))  
-                    
-        return Quadrilateral(new_vertices, self.image, QuadMethod.CORNER_PROJECTED)
+            
+        # Only create a quad, if the intersections have produced 4 corners
+        if len(new_vertices) == 4:
+            return Quadrilateral(new_vertices, self.image, QuadMethod.CORNER_PROJECTED)
+        else:
+            logger.info("Guestimating quad only produced %s vertices. Cannot create quadrilateral.", len(new_vertices)) 
 
 
     def set_valid(self, valid: LabelValid):

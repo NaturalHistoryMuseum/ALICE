@@ -1,7 +1,7 @@
 import luigi
 import cv2
 
-from alice.config import IMAGE_BASE_WIDTH, PROCESSING_IMAGE_DIR
+from alice.config import IMAGE_BASE_WIDTH, RESIZED_IMAGE_DIR
 from alice.tasks.base import BaseTask
 from alice.utils.image import resize_image
 
@@ -14,4 +14,4 @@ class ImageTask(BaseTask):
         cv2.imwrite(self.output().path, image) 
                 
     def output(self): 
-        return luigi.LocalTarget(PROCESSING_IMAGE_DIR / self.path.name if IMAGE_BASE_WIDTH else self.path.name)
+        return luigi.LocalTarget(RESIZED_IMAGE_DIR / self.path.name if IMAGE_BASE_WIDTH else self.path.name)
